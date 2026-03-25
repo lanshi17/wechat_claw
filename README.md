@@ -67,8 +67,10 @@ The current required environment variables in code are:
 | --- | --- | --- |
 | `ADMIN_USER_ID` | `wxid_admin` | 允许发送控制消息的管理员 WeChat 用户 ID / Trusted admin WeChat user ID |
 | `WORKSPACE_ROOT` | `/workspace` | 文件读写与命令执行允许访问的工作区根目录 / Allowed workspace root for file and shell operations |
-| `LLM_PROVIDER` | `openai` | 使用的 LLM 提供方标识 / LLM provider name |
-| `LLM_MODEL` | `gpt-4o-mini` | 默认模型名 / Default model name |
+| `LLM_BASE_URL` | `http://localhost:11434/v1` | OpenAI-compatible API base URL / OpenAI-compatible API base URL |
+| `LLM_MODEL` | `qwen2.5-coder` | 要调用的模型名 / Model name to use |
+| `LLM_API_KEY` | `sk-test-123` | 可选的 API Key；某些兼容服务可留空 / Optional API key; may be empty for some compatible services |
+| `LLM_SUPPORTS_IMAGE_INPUT` | `false` | 可选，是否支持图像输入；未设置时默认关闭 / Optional image-input capability flag; defaults to disabled when omitted |
 | `DATABASE_PATH` | `./data/wechat-claw.db` | SQLite 数据库路径 / SQLite database path |
 
 示例：
@@ -78,8 +80,10 @@ Example:
 ```bash
 export ADMIN_USER_ID=wxid_admin
 export WORKSPACE_ROOT=/workspace
-export LLM_PROVIDER=openai
-export LLM_MODEL=gpt-4o-mini
+export LLM_BASE_URL=http://localhost:11434/v1
+export LLM_MODEL=qwen2.5-coder
+export LLM_API_KEY=
+export LLM_SUPPORTS_IMAGE_INPUT=false
 export DATABASE_PATH=./data/wechat-claw.db
 ```
 

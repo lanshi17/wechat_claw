@@ -1,5 +1,6 @@
-import type { AgentProvider } from "./base.js";
+import { createOpenAiProvider } from "./openai.js";
+import type { AgentProvider, OpenAiCompatibleProviderConfig } from "./base.js";
 
-export function createOllamaProvider(provider: AgentProvider): AgentProvider {
-  return provider;
+export function createOllamaProvider(config: OpenAiCompatibleProviderConfig, provider: AgentProvider): AgentProvider {
+  return createOpenAiProvider(config, provider);
 }

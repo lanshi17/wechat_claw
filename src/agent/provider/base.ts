@@ -8,6 +8,20 @@ export type AgentPlan = {
   actions: AgentAction[];
 };
 
+export type AgentPlanInput = {
+  threadId: string;
+  prompt: string;
+};
+
+export type OpenAiCompatibleProviderConfig = {
+  apiStyle: "openai-compatible";
+  baseUrl: string;
+  model: string;
+  apiKey?: string;
+  supportsImageInput: boolean;
+};
+
 export type AgentProvider = {
-  plan(input: { threadId: string; prompt: string }): Promise<AgentPlan>;
+  config?: OpenAiCompatibleProviderConfig;
+  plan(input: AgentPlanInput): Promise<AgentPlan>;
 };
