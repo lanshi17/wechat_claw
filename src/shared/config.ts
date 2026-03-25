@@ -7,10 +7,12 @@ export function loadConfig(env: Record<string, string | undefined>) {
     adminUserId: parsed.ADMIN_USER_ID,
     workspaceRoot: parsed.WORKSPACE_ROOT,
     databasePath: parsed.DATABASE_PATH,
-    provider: {
-      type: parsed.LLM_PROVIDER,
+    llm: {
+      apiStyle: "openai-compatible" as const,
+      baseUrl: parsed.LLM_BASE_URL,
       model: parsed.LLM_MODEL,
-      capabilities: { imageInput: parsed.LLM_PROVIDER === "openai" },
+      apiKey: parsed.LLM_API_KEY,
+      supportsImageInput: parsed.LLM_SUPPORTS_IMAGE_INPUT === "true",
     },
   };
 }
