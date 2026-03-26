@@ -5,7 +5,7 @@ export const envSchema = z.object({
   WORKSPACE_ROOT: z.string().min(1),
   LLM_BASE_URL: z.string().min(1),
   LLM_MODEL: z.string().min(1),
-  LLM_API_KEY: z.string().min(1).optional(),
+  LLM_API_KEY: z.string().optional(),
   LLM_SUPPORTS_IMAGE_INPUT: z.enum(["true", "false"]).optional(),
   DATABASE_PATH: z.string().min(1),
 });
