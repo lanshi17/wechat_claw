@@ -11,4 +11,21 @@ describe("TaskService", () => {
     expect(second.threadId).toBe(first.threadId);
     expect(service.getThread(first.threadId)?.status).toBe("queued");
   });
+
+  it("supports minimal event lifecycle: append event, mark done, and list events", () => {
+    const service = createTaskService();
+
+    const result = service.receiveMessage({ fromUserId: "wxid_admin", text: "search rustls" });
+    const threadId = result.threadId;
+
+    service.appendEvent(threadId, { kind: "tool.completed", summary: "web search done" });
+    service.markDone(threadId);
+
+    expect(service.getThread(threadId)?.status).toBe("done");
+
+    const events = service.listEvents(threadId);
+    expect(events).toHaveLength(1);
+    expect(events[0].kind).toBe("tool.completed");
+    expect(events[0].summary).toBe("web search done");
+  });
 });
