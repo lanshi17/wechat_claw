@@ -22,12 +22,14 @@ This repository focuses on a small but complete MVP loop:
 The root repository is still in an early MVP stage.
 
 - 已有基础模块与测试：agent、task service、tool registry、approval engine、store、TUI、WeChat gateway
-- 当前根仓库可稳定执行的是测试与类型检查
-- 设计文档已经定义了目标 MVP 形态，但根仓库本身还不是完整的生产可运行版本
+- 当前仓库已经提供一个最小可运行的 smoke 路径：`start:mvp`
+- 这个 smoke 路径会用假的 provider 和 stubbed `web.search` 跑通一次“消息 -> 规划 -> 工具 -> 回复”闭环
+- 设计文档已经定义了更完整的 MVP 形态，当前实现仍是通往完整版本的中间切片
 
 - Core modules and tests already exist: agent, task service, tool registry, approval engine, store, TUI, and WeChat gateway.
-- The stable commands in the root repository today are test and typecheck.
-- The design docs define the target MVP shape, but the root repository itself is not yet a full production-ready runnable application.
+- The repository now exposes a minimal runnable smoke path via `start:mvp`.
+- That smoke path closes one end-to-end loop using a fake provider and a stubbed `web.search` tool.
+- The design docs still describe a fuller MVP target; the current implementation is an intermediate runnable slice rather than the final version.
 
 ## 快速开始 / Quick Start
 
@@ -53,9 +55,34 @@ pnpm test
 pnpm typecheck
 ```
 
-> 当前根仓库 README 以根目录现状为准，因此这里不把未合并分支中的启动命令当作主入口说明。
->
-> This README reflects the current root repository state, so it does not present startup commands from unmerged branches as the main entrypoint.
+### 4) 运行 smoke MVP / Run the smoke MVP
+
+先准备环境变量，然后执行：
+
+Set the environment variables first, then run:
+
+```bash
+pnpm start:mvp
+```
+
+如果本地没有可用的 `pnpm`，也可以用：
+
+If `pnpm` is not available locally, you can also use:
+
+```bash
+npm run start:mvp
+```
+
+这个命令当前会：
+
+This command currently does the following:
+
+- 加载当前环境配置 / Load the current environment config
+- 组装一个最小可运行的 app + gateway / Compose a minimal runnable app + gateway
+- 使用 fake provider 生成一个确定性的计划结果 / Use a fake provider to generate a deterministic plan
+- 通过 stubbed `web.search` 闭合一次 smoke 路径 / Close one smoke path with a stubbed `web.search`
+- 打印 bootstrap 成功信息 / Print bootstrap success output
+
 
 ## 环境变量 / Environment Variables
 
@@ -93,6 +120,7 @@ export DATABASE_PATH=./data/wechat-claw.db
 pnpm install
 pnpm test
 pnpm typecheck
+pnpm start:mvp
 ```
 
 等价的 npm 方式：
@@ -103,6 +131,7 @@ Equivalent npm commands:
 npm install
 npx vitest run
 npx tsc --noEmit
+npm run start:mvp
 ```
 
 ## 项目结构 / Project Structure
