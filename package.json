@@ -6,7 +6,9 @@
   "packageManager": "pnpm@10.17.1",
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "start:mvp": "npm run build && node dist/cli.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
