@@ -18,4 +18,22 @@ describe("createDefaultEntrypoint", () => {
     expect(entry.app).toBeDefined();
     expect(entry.gateway).toBeDefined();
   });
+
+  it("builds an app and gateway that can support approval-required smoke flows", () => {
+    const entry = createDefaultEntrypoint({
+      env: {
+        ADMIN_USER_ID: "wxid_admin",
+        WORKSPACE_ROOT: "/workspace",
+        LLM_BASE_URL: "http://localhost:11434/v1",
+        LLM_MODEL: "qwen2.5-coder",
+        LLM_API_KEY: "",
+        LLM_SUPPORTS_IMAGE_INPUT: "false",
+        DATABASE_PATH: ":memory:",
+      },
+    });
+
+    expect(entry.app).toBeDefined();
+    expect(entry.gateway).toBeDefined();
+    expect(entry.taskService).toBeDefined();
+  });
 });

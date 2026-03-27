@@ -3,6 +3,7 @@ import { createWeChatGateway } from "../wechat/gateway.js";
 import { createAgentRuntime } from "../agent/runtime.js";
 import { createToolRegistry } from "../tools/registry.js";
 import { createApplication } from "./main.js";
+import { createTaskService } from "../tasks/service.js";
 import { classifyAction } from "../approval/engine.js";
 import type { AgentProvider } from "../agent/provider/base.js";
 import type { MessageInput } from "../tasks/service.js";
@@ -14,8 +15,8 @@ function createFakeProvider(): AgentProvider {
   return {
     async plan() {
       return {
-        reply: "Got it! I'll help you with that.",
-        actions: [],
+        reply: "✓ Tool executed and approval complete!",
+        actions: [{ tool: "shell.exec", input: { command: "echo 'smoke test'" } }],
       };
     },
   };
@@ -44,13 +45,14 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
     shellExec: stubShellExec,
     webSearch: stubWebSearch,
   });
+  const taskServiceImpl = createTaskService();
 
   const app = createApplication({
     adminUserId: config.adminUserId,
     runtime: {
       async planNext() {
         return runtime.planNext({
-          threadId: "smoke-test",
+          threadId: currentMessage?.text ?? "test",
           prompt: currentMessage?.text ?? "test",
         });
       },
@@ -59,10 +61,42 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
     tools: toolRegistry,
     taskService: {
       receiveMessage() {
-        return { threadId: "smoke-test" };
+        if (!currentMessage) {
+          throw new Error("currentMessage not set before receiveMessage call");
+        }
+        return taskServiceImpl.receiveMessage(currentMessage);
       },
-      appendEvent() {},
-      markDone() {},
+      appendEvent(threadId: string, event: { kind: string; [key: string]: unknown }) {
+        taskServiceImpl.appendEvent(threadId, {
+          kind: event.kind,
+          summary: `Event: ${event.kind}`,
+        });
+      },
+      markDone(threadId: string) {
+        taskServiceImpl.markDone(threadId);
+      },
+      createApprovalRequest(threadId: string, action: { tool: string; input: unknown }, reply: string) {
+        return taskServiceImpl.createApprovalRequest(threadId, action, reply);
+      },
+      markWaitingApproval(threadId: string) {
+        taskServiceImpl.markWaitingApproval(threadId);
+      },
+      getPendingApproval(approvalId: string) {
+        const approval = taskServiceImpl.getPendingApproval(approvalId);
+        if (!approval) {
+          return {
+            id: "",
+            threadId: "",
+            action: { tool: "", input: {} },
+            reply: "",
+            status: "pending",
+          };
+        }
+        return approval as { id: string; threadId: string; action: { tool: string; input: unknown }; reply: string; status: string };
+      },
+      markApproved(approvalId: string) {
+        taskServiceImpl.markApproved(approvalId);
+      },
     },
     sendReply: async () => {},
   });
@@ -81,5 +115,8 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
     },
   });
 
-  return { app, gateway };
+  return { app, gateway, taskService: taskServiceImpl, setCurrentMessage: (msg: MessageInput) => { currentMessage = msg; } };
 }
+
+
+
