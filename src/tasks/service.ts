@@ -1,5 +1,5 @@
 import { routeThread, type ThreadRecord } from "./thread-router.js";
-import type { TaskEvent } from "./state-machine.js";
+import type { TaskEvent, ApprovalRecord } from "./state-machine.js";
 
 export type MessageInput = {
   fromUserId: string;
@@ -11,6 +11,7 @@ export type TaskThread = ThreadRecord;
 export function createTaskService() {
   const threads: TaskThread[] = [];
   const events: Map<string, TaskEvent[]> = new Map();
+  const approvals: Map<string, ApprovalRecord> = new Map();
 
   return {
     receiveMessage(input: MessageInput) {
@@ -45,6 +46,33 @@ export function createTaskService() {
       const thread = threads.find((t) => t.id === threadId);
       if (thread) {
         thread.status = "done";
+      }
+    },
+    createApprovalRequest(threadId: string, action: { tool: string; input: unknown }, reply: string) {
+      const approvalId = crypto.randomUUID();
+      const approval: ApprovalRecord = {
+        id: approvalId,
+        threadId,
+        action,
+        reply,
+        status: "pending",
+      };
+      approvals.set(approvalId, approval);
+      return { approvalId };
+    },
+    markWaitingApproval(threadId: string) {
+      const thread = threads.find((t) => t.id === threadId);
+      if (thread) {
+        thread.status = "waiting_approval";
+      }
+    },
+    getPendingApproval(approvalId: string) {
+      return approvals.get(approvalId);
+    },
+    markApproved(approvalId: string) {
+      const approval = approvals.get(approvalId);
+      if (approval) {
+        approval.status = "approved";
       }
     },
   };
