@@ -7,6 +7,10 @@ export function createApplication(deps: {
     receiveMessage(): { threadId: string };
     appendEvent(threadId: string, event: { kind: string; [key: string]: unknown }): void;
     markDone(threadId: string): void;
+    createApprovalRequest?(threadId: string, action: { tool: string; input: unknown }, reply: string): { approvalId: string };
+    markWaitingApproval?(threadId: string): void;
+    getPendingApproval?(approvalId: string): { id: string; threadId: string; action: { tool: string; input: unknown }; reply: string; status: string };
+    markApproved?(approvalId: string): void;
   };
   sendReply: (userId: string, text: string) => Promise<void> | void;
 }) {
@@ -25,17 +29,21 @@ export function createApplication(deps: {
 
       // 3. Process actions
       for (const action of plan.actions) {
-        // Auto-approve web.search
         const classification = deps.approvals.classifyAction(action);
         if (classification.decision === "auto_approve") {
-          // 4. Run the tool
           const result = await deps.tools.run(action);
-          // 5. Append tool.completed event
           deps.taskService.appendEvent(threadId, {
             kind: "tool.completed",
             tool: action.tool,
             result,
           });
+        } else if (classification.decision === "approval_required") {
+          if (deps.taskService.createApprovalRequest && deps.taskService.markWaitingApproval) {
+            const approval = deps.taskService.createApprovalRequest(threadId, action, plan.reply);
+            deps.taskService.markWaitingApproval(threadId);
+            await deps.sendReply(message.fromUserId, `Action requires approval. Approval ID: ${approval.approvalId}`);
+            return;
+          }
         }
       }
 
@@ -44,6 +52,27 @@ export function createApplication(deps: {
 
       // 7. Send final reply
       await deps.sendReply(message.fromUserId, plan.reply);
+    },
+
+    async resumeApproval(approvalId: string) {
+      if (!deps.taskService.getPendingApproval || !deps.taskService.markApproved) {
+        return;
+      }
+
+      const approval = deps.taskService.getPendingApproval(approvalId);
+      if (!approval) return;
+
+      const { threadId, action, reply } = approval;
+
+      const result = await deps.tools.run(action);
+      deps.taskService.appendEvent(threadId, {
+        kind: "tool.completed",
+        tool: action.tool,
+        result,
+      });
+
+      deps.taskService.markDone(threadId);
+      await deps.sendReply(deps.adminUserId, reply);
     },
   };
 }
