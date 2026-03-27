@@ -16,5 +16,7 @@ export async function bootstrapApplication(input: { env: Record<string, string |
     app: entrypoint.app,
     gateway: entrypoint.gateway,
     config,
+    taskService: entrypoint.taskService,
+    setCurrentMessage: entrypoint.setCurrentMessage,
   };
 }

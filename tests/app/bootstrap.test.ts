@@ -30,4 +30,22 @@ describe("bootstrapApplication", () => {
     expect(result).toHaveProperty("config");
     expect(result.config.workspaceRoot).toBe("/workspace");
   });
+
+  it("exposes taskService for approval-resume smoke flows", async () => {
+    const result = await bootstrapApplication({
+      env: {
+        ADMIN_USER_ID: "wxid_admin",
+        WORKSPACE_ROOT: "/workspace",
+        LLM_BASE_URL: "http://localhost:11434/v1",
+        LLM_MODEL: "qwen2.5-coder",
+        LLM_API_KEY: "",
+        LLM_SUPPORTS_IMAGE_INPUT: "false",
+        DATABASE_PATH: ":memory:",
+      },
+    });
+
+    expect(result).toHaveProperty("taskService");
+    expect(result.taskService).toHaveProperty("receiveMessage");
+    expect(result.taskService).toHaveProperty("getPendingApproval");
+  });
 });
