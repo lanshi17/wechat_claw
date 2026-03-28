@@ -1,5 +1,7 @@
 import { routeThread, type ThreadRecord } from "./thread-router.js";
 import type { TaskEvent, ApprovalRecord } from "./state-machine.js";
+import type { ThreadRepository } from "../store/repositories/threads.js";
+import type { ApprovalRepository } from "../store/repositories/approvals.js";
 
 export type MessageInput = {
   fromUserId: string;
@@ -8,7 +10,15 @@ export type MessageInput = {
 
 export type TaskThread = ThreadRecord;
 
-export function createTaskService() {
+export type TaskServiceDeps = {
+  threadRepository?: ThreadRepository;
+  approvalRepository?: ApprovalRepository;
+};
+
+export function createTaskService({
+  threadRepository,
+  approvalRepository,
+}: TaskServiceDeps = {}) {
   const threads: TaskThread[] = [];
   const events: Map<string, TaskEvent[]> = new Map();
   const approvals: Map<string, ApprovalRecord> = new Map();
@@ -21,14 +31,26 @@ export function createTaskService() {
         return { threadId: existing.id };
       }
 
+      let threadId: string;
+
+      if (threadRepository) {
+        const created = threadRepository.create({
+          sourceUserId: input.fromUserId,
+          title: input.text,
+        });
+        threadId = created.id;
+      } else {
+        threadId = crypto.randomUUID();
+      }
+
       const thread: TaskThread = {
-        id: crypto.randomUUID(),
+        id: threadId,
         fromUserId: input.fromUserId,
         status: "queued",
       };
 
       threads.push(thread);
-      return { threadId: thread.id };
+      return { threadId };
     },
     getThread(threadId: string) {
       return threads.find((thread) => thread.id === threadId);
@@ -38,6 +60,10 @@ export function createTaskService() {
         events.set(threadId, []);
       }
       events.get(threadId)!.push(event);
+
+      if (threadRepository) {
+        threadRepository.appendEvent(threadId, event);
+      }
     },
     listEvents(threadId: string) {
       return events.get(threadId) ?? [];
@@ -47,17 +73,33 @@ export function createTaskService() {
       if (thread) {
         thread.status = "done";
       }
+
+      if (threadRepository) {
+        threadRepository.updateStatus(threadId, "done");
+      }
     },
     createApprovalRequest(threadId: string, action: { tool: string; input: unknown }, reply: string) {
-      const approvalId = crypto.randomUUID();
-      const approval: ApprovalRecord = {
-        id: approvalId,
-        threadId,
-        action,
-        reply,
-        status: "pending",
-      };
-      approvals.set(approvalId, approval);
+      let approvalId: string;
+
+      if (approvalRepository) {
+        const created = approvalRepository.create({
+          threadId,
+          action,
+          reply,
+        });
+        approvalId = created.id;
+        approvals.set(created.id, created);
+      } else {
+        approvalId = crypto.randomUUID();
+        approvals.set(approvalId, {
+          id: approvalId,
+          threadId,
+          action,
+          reply,
+          status: "pending",
+        });
+      }
+
       return { approvalId };
     },
     markWaitingApproval(threadId: string) {
@@ -65,14 +107,30 @@ export function createTaskService() {
       if (thread) {
         thread.status = "waiting_approval";
       }
+
+      if (threadRepository) {
+        threadRepository.updateStatus(threadId, "waiting_approval");
+      }
     },
     getPendingApproval(approvalId: string) {
+      if (approvalRepository) {
+        const approval = approvalRepository.get(approvalId);
+        if (approval) {
+          approvals.set(approvalId, approval);
+        }
+        return approval;
+      }
+
       return approvals.get(approvalId);
     },
     markApproved(approvalId: string) {
       const approval = approvals.get(approvalId);
       if (approval) {
         approval.status = "approved";
+      }
+
+      if (approvalRepository) {
+        approvalRepository.markApproved(approvalId);
       }
     },
   };
