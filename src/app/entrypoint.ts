@@ -5,6 +5,9 @@ import { createToolRegistry } from "../tools/registry.js";
 import { createApplication } from "./main.js";
 import { createTaskService } from "../tasks/service.js";
 import { classifyAction } from "../approval/engine.js";
+import { createInMemoryDatabase } from "../store/db.js";
+import { ThreadRepository } from "../store/repositories/threads.js";
+import { ApprovalRepository } from "../store/repositories/approvals.js";
 import type { AgentProvider } from "../agent/provider/base.js";
 import type { MessageInput } from "../tasks/service.js";
 
@@ -39,13 +42,20 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
 
   let currentMessage: MessageInput | undefined;
 
+  const db = createInMemoryDatabase();
+  const threadRepository = new ThreadRepository(db);
+  const approvalRepository = new ApprovalRepository(db);
+
   const provider = createFakeProvider();
   const runtime = createAgentRuntime({ provider });
   const toolRegistry = createToolRegistry({
     shellExec: stubShellExec,
     webSearch: stubWebSearch,
   });
-  const taskServiceImpl = createTaskService();
+  const taskServiceImpl = createTaskService({
+    threadRepository,
+    approvalRepository,
+  });
 
   const app = createApplication({
     adminUserId: config.adminUserId,
