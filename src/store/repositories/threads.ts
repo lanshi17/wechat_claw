@@ -10,6 +10,7 @@ export type ThreadRecord = {
   id: string;
   sourceUserId: string;
   title: string;
+  status: string;
 };
 
 export type ThreadEventRecord = {
@@ -27,11 +28,12 @@ export class ThreadRepository {
       id: crypto.randomUUID(),
       sourceUserId: input.sourceUserId,
       title: input.title,
+      status: "queued",
     };
 
     this.db
-      .prepare("INSERT INTO threads (id, source_user_id, title) VALUES (?, ?, ?)")
-      .run(thread.id, thread.sourceUserId, thread.title);
+      .prepare("INSERT INTO threads (id, source_user_id, title, status) VALUES (?, ?, ?, ?)")
+      .run(thread.id, thread.sourceUserId, thread.title, thread.status);
 
     return thread;
   }
@@ -53,8 +55,8 @@ export class ThreadRepository {
 
   get(threadId: string): ThreadRecord | undefined {
     const row = this.db
-      .prepare("SELECT id, source_user_id, title FROM threads WHERE id = ?")
-      .get(threadId) as { id: string; source_user_id: string; title: string } | undefined;
+      .prepare("SELECT id, source_user_id, title, status FROM threads WHERE id = ?")
+      .get(threadId) as { id: string; source_user_id: string; title: string; status: string } | undefined;
 
     if (!row) {
       return undefined;
@@ -64,6 +66,7 @@ export class ThreadRepository {
       id: row.id,
       sourceUserId: row.source_user_id,
       title: row.title,
+      status: row.status,
     };
   }
 
@@ -78,5 +81,11 @@ export class ThreadRepository {
       kind: row.kind,
       summary: row.summary,
     }));
+  }
+
+  updateStatus(threadId: string, status: string): void {
+    this.db
+      .prepare("UPDATE threads SET status = ? WHERE id = ?")
+      .run(status, threadId);
   }
 }
