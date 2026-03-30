@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createOpenAiProvider } from "../../src/agent/provider/openai.js";
 
 const config = {
@@ -11,14 +11,14 @@ const config = {
 
 describe("createOpenAiProvider", () => {
   it("accepts normalized openai-compatible config and returns a provider", async () => {
-    const provider = createOpenAiProvider(config, {
-      async plan(input) {
-        return {
-          reply: `planning for ${input.prompt}`,
-          actions: [],
-        };
-      },
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "planning for hello" } }],
+      }),
     });
+
+    const provider = createOpenAiProvider(config, { fetch: fetchMock as typeof fetch });
 
     const result = await provider.plan({ threadId: "t1", prompt: "hello" });
 
@@ -26,14 +26,7 @@ describe("createOpenAiProvider", () => {
   });
 
   it("preserves config on the provider for runtime wiring", () => {
-    const provider = createOpenAiProvider(config, {
-      async plan() {
-        return {
-          reply: "ok",
-          actions: [],
-        };
-      },
-    });
+    const provider = createOpenAiProvider(config, { fetch: vi.fn() as unknown as typeof fetch });
 
     expect(provider.config).toEqual(config);
   });

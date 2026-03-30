@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createAgentRuntime } from "../../src/agent/runtime.js";
+import { createOpenAiProvider } from "../../src/agent/provider/openai.js";
 
 describe("AgentRuntime", () => {
   it("turns a provider tool plan into executable actions", async () => {
@@ -18,5 +19,30 @@ describe("AgentRuntime", () => {
 
     expect(result.reply).toContain("Searching");
     expect(result.actions[0]?.tool).toBe("web.search");
+  });
+
+  it("consumes a real-provider plan without runtime changes", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "runtime hello" } }],
+      }),
+    });
+
+    const provider = createOpenAiProvider(
+      {
+        apiStyle: "openai-compatible",
+        baseUrl: "http://localhost:11434/v1",
+        model: "qwen2.5-coder",
+        apiKey: "",
+        supportsImageInput: false,
+      },
+      { fetch: fetchMock as typeof fetch },
+    );
+
+    const runtime = createAgentRuntime({ provider });
+    const result = await runtime.planNext({ threadId: "t-http", prompt: "say hello" });
+
+    expect(result).toEqual({ reply: "runtime hello", actions: [] });
   });
 });

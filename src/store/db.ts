@@ -6,3 +6,9 @@ export function createInMemoryDatabase() {
   applyMigrations(db);
   return db;
 }
+
+export function createSqliteDatabase(databasePath: string) {
+  const db = new Database(databasePath);
+  applyMigrations(db);
+  return db;
+}

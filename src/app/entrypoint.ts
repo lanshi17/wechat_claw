@@ -5,25 +5,11 @@ import { createToolRegistry } from "../tools/registry.js";
 import { createApplication } from "./main.js";
 import { createTaskService } from "../tasks/service.js";
 import { classifyAction } from "../approval/engine.js";
-import { createInMemoryDatabase } from "../store/db.js";
+import { createSqliteDatabase } from "../store/db.js";
 import { ThreadRepository } from "../store/repositories/threads.js";
 import { ApprovalRepository } from "../store/repositories/approvals.js";
-import type { AgentProvider } from "../agent/provider/base.js";
+import { createOpenAiProvider } from "../agent/provider/openai.js";
 import type { MessageInput } from "../tasks/service.js";
-
-/**
- * Fake provider for smoke testing: returns deterministic plans without HTTP calls.
- */
-function createFakeProvider(): AgentProvider {
-  return {
-    async plan() {
-      return {
-        reply: "✓ Tool executed and approval complete!",
-        actions: [{ tool: "shell.exec", input: { command: "echo 'smoke test'" } }],
-      };
-    },
-  };
-}
 
 async function stubWebSearch() {
   return { items: [] };
@@ -41,12 +27,13 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
   const config = loadConfig(input.env);
 
   let currentMessage: MessageInput | undefined;
+  let currentThreadId: string | undefined;
 
-  const db = createInMemoryDatabase();
+  const db = createSqliteDatabase(config.databasePath);
   const threadRepository = new ThreadRepository(db);
   const approvalRepository = new ApprovalRepository(db);
 
-  const provider = createFakeProvider();
+  const provider = createOpenAiProvider(config.llm);
   const runtime = createAgentRuntime({ provider });
   const toolRegistry = createToolRegistry({
     shellExec: stubShellExec,
@@ -61,8 +48,11 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
     adminUserId: config.adminUserId,
     runtime: {
       async planNext() {
+        if (!currentThreadId) {
+          throw new Error("thread not initialized before planning");
+        }
         return runtime.planNext({
-          threadId: currentMessage?.text ?? "test",
+          threadId: currentThreadId,
           prompt: currentMessage?.text ?? "test",
         });
       },
@@ -74,7 +64,9 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
         if (!currentMessage) {
           throw new Error("currentMessage not set before receiveMessage call");
         }
-        return taskServiceImpl.receiveMessage(currentMessage);
+        const received = taskServiceImpl.receiveMessage(currentMessage);
+        currentThreadId = received.threadId;
+        return received;
       },
       appendEvent(threadId: string, event: { kind: string; [key: string]: unknown }) {
         taskServiceImpl.appendEvent(threadId, {
@@ -92,17 +84,7 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
         taskServiceImpl.markWaitingApproval(threadId);
       },
       getPendingApproval(approvalId: string) {
-        const approval = taskServiceImpl.getPendingApproval(approvalId);
-        if (!approval) {
-          return {
-            id: "",
-            threadId: "",
-            action: { tool: "", input: {} },
-            reply: "",
-            status: "pending",
-          };
-        }
-        return approval as { id: string; threadId: string; action: { tool: string; input: unknown }; reply: string; status: string };
+        return taskServiceImpl.getPendingApproval(approvalId);
       },
       markApproved(approvalId: string) {
         taskServiceImpl.markApproved(approvalId);
@@ -127,6 +109,4 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
 
   return { app, gateway, taskService: taskServiceImpl, setCurrentMessage: (msg: MessageInput) => { currentMessage = msg; } };
 }
-
-
 

@@ -53,7 +53,25 @@ export function createTaskService({
       return { threadId };
     },
     getThread(threadId: string) {
-      return threads.find((thread) => thread.id === threadId);
+      const local = threads.find((thread) => thread.id === threadId);
+      if (local) {
+        return local;
+      }
+
+      if (!threadRepository) {
+        return undefined;
+      }
+
+      const persisted = threadRepository.get(threadId);
+      if (!persisted) {
+        return undefined;
+      }
+
+      return {
+        id: persisted.id,
+        fromUserId: persisted.sourceUserId,
+        status: persisted.status,
+      };
     },
     appendEvent(threadId: string, event: TaskEvent) {
       if (!events.has(threadId)) {

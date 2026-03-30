@@ -9,7 +9,9 @@ export function createApplication(deps: {
     markDone(threadId: string): void;
     createApprovalRequest?(threadId: string, action: { tool: string; input: unknown }, reply: string): { approvalId: string };
     markWaitingApproval?(threadId: string): void;
-    getPendingApproval?(approvalId: string): { id: string; threadId: string; action: { tool: string; input: unknown }; reply: string; status: string };
+    getPendingApproval?(approvalId: string):
+      | { id: string; threadId: string; action: { tool: string; input: unknown }; reply: string; status: string }
+      | undefined;
     markApproved?(approvalId: string): void;
   };
   sendReply: (userId: string, text: string) => Promise<void> | void;

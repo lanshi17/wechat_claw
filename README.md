@@ -23,12 +23,12 @@ The root repository is still in an early MVP stage.
 
 - 已有基础模块与测试：agent、task service、tool registry、approval engine、store、TUI、WeChat gateway
 - 当前仓库已经提供一个最小可运行的 smoke 路径：`start:mvp`
-- 这个 smoke 路径现在会演示一次完整的审批暂停/恢复闭环：`消息 -> 规划 -> 生成审批 -> CLI 批准 -> 工具执行 -> 回复`
+- 这个 smoke 路径现在会演示一次完整的审批暂停/恢复闭环：`消息 -> 真实 provider 规划 -> 生成审批 -> CLI 批准 -> 工具执行 -> 回复`
 - 设计文档已经定义了更完整的 MVP 形态，当前实现仍是通往完整版本的中间切片
 
 - Core modules and tests already exist: agent, task service, tool registry, approval engine, store, TUI, and WeChat gateway.
 - The repository now exposes a minimal runnable smoke path via `start:mvp`.
-- That smoke path now demonstrates a full approval pause/resume loop: `message -> planning -> approval creation -> CLI approval -> tool execution -> reply`.
+- That smoke path now demonstrates a full approval pause/resume loop driven by a real provider: `message -> real provider planning -> approval creation -> CLI approval -> tool execution -> reply`.
 - The design docs still describe a fuller MVP target; the current implementation is an intermediate runnable slice rather than the final version.
 
 ## 快速开始 / Quick Start
@@ -79,10 +79,14 @@ This command currently does the following:
 
 - 加载当前环境配置 / Load the current environment config
 - 组装一个最小可运行的 app + gateway / Compose a minimal runnable app + gateway
-- 使用 fake provider 生成一个确定性的审批型计划结果 / Use a fake provider to generate a deterministic approval-required plan
+- 调用真实 OpenAI-compatible `/chat/completions` 端点生成计划结果 / Call a real OpenAI-compatible `/chat/completions` endpoint to produce the plan
 - 创建审批请求并打印 approval ID / Create an approval request and print the approval ID
 - 模拟一次 CLI 批准并恢复执行 / Simulate a CLI approval and resume execution
 - 打印最终线程完成状态 / Print the final thread completion status
+
+如果 `LLM_BASE_URL` 不可达或 API 配置错误，`start:mvp` 会显式失败并打印 provider 错误。
+
+If `LLM_BASE_URL` is unreachable or API config is invalid, `start:mvp` will fail visibly with a provider error.
 
 
 ## 环境变量 / Environment Variables
@@ -124,9 +128,9 @@ pnpm typecheck
 pnpm start:mvp
 ```
 
-`start:mvp` 当前会在一次命令里演示“审批请求 -> 批准 -> 恢复执行”的 smoke 流程。
+`start:mvp` 当前会在一次命令里演示“真实 provider 规划 -> 审批请求 -> 批准 -> 恢复执行”的 smoke 流程。
 
-`start:mvp` currently demonstrates the approval-resume smoke flow in a single command: request approval -> approve -> resume execution.
+`start:mvp` currently demonstrates a single-command smoke flow driven by a real OpenAI-compatible provider: planning -> request approval -> approve -> resume execution.
 
 等价的 npm 方式：
 

@@ -359,12 +359,12 @@ Confirm the implementation did **not** add:
 
 Checklist:
 
-- [ ] thread status persists through SQLite
-- [ ] task events persist through SQLite
-- [ ] approval requests persist through SQLite
-- [ ] approval approval-state persists through SQLite
-- [ ] `TaskService` still hides repository details from callers
-- [ ] `start:mvp` still works end-to-end
+- [x] thread status persists through SQLite
+- [x] task events persist through SQLite
+- [x] approval requests persist through SQLite
+- [x] approval approval-state persists through SQLite
+- [x] `TaskService` still hides repository details from callers
+- [x] `start:mvp` still works end-to-end
 
 **Step 3: Only make minimal follow-up fix if the checklist fails**
 
