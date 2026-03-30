@@ -22,6 +22,50 @@ describe("createDefaultEntrypoint", () => {
     expect(entry.gateway).toBeDefined();
   });
 
+  it("wires the gateway with the trusted admin boundary", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                reply: "ok",
+                actions: [],
+              }),
+            },
+          },
+        ],
+      }),
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    const entry = createDefaultEntrypoint({
+      env: {
+        ADMIN_USER_ID: "wxid_admin",
+        WORKSPACE_ROOT: "/workspace",
+        LLM_BASE_URL: "http://localhost:11434/v1",
+        LLM_MODEL: "qwen2.5-coder",
+        LLM_API_KEY: "",
+        LLM_SUPPORTS_IMAGE_INPUT: "false",
+        DATABASE_PATH: ":memory:",
+      },
+    });
+
+    try {
+      await entry.gateway.handleInbound({
+        fromUserId: "wxid_guest",
+        text: "run tests",
+        contextToken: "ctx-guest",
+      });
+
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("builds an app and gateway that can support approval-required smoke flows", () => {
     const entry = createDefaultEntrypoint({
       env: {

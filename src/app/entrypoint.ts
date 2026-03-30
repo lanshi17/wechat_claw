@@ -94,6 +94,7 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
   });
 
   const gateway = createWeChatGateway({
+    adminUserId: config.adminUserId,
     onMessage: async (message) => {
       currentMessage = {
         fromUserId: message.fromUserId,
@@ -109,4 +110,3 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
 
   return { app, gateway, taskService: taskServiceImpl, setCurrentMessage: (msg: MessageInput) => { currentMessage = msg; } };
 }
-

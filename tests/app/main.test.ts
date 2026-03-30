@@ -49,6 +49,7 @@ describe("createApplication", () => {
     const createApprovalRequest = vi.fn().mockReturnValue({ approvalId: "ap1" });
     const appendEvent = vi.fn();
     const markWaitingApproval = vi.fn();
+    const markDone = vi.fn();
     const toolsRun = vi.fn();
 
     const app = createApplication({
@@ -74,7 +75,7 @@ describe("createApplication", () => {
         appendEvent,
         createApprovalRequest,
         markWaitingApproval,
-        markDone: vi.fn(),
+        markDone,
       },
       sendReply,
     });
@@ -88,6 +89,7 @@ describe("createApplication", () => {
     );
     expect(markWaitingApproval).toHaveBeenCalledWith("t1");
     expect(toolsRun).not.toHaveBeenCalled();
+    expect(markDone).not.toHaveBeenCalled();
     expect(sendReply).toHaveBeenCalledWith("wxid_admin", expect.stringContaining("ap1"));
   });
 
@@ -95,6 +97,7 @@ describe("createApplication", () => {
     const sendReply = vi.fn();
     const appendEvent = vi.fn();
     const markDone = vi.fn();
+    const markApproved = vi.fn();
     const toolsRun = vi.fn().mockResolvedValue({ ok: true, tool: "shell.exec", output: { exitCode: 0, stdout: "/workspace", stderr: "" } });
 
     const app = createApplication({
@@ -118,7 +121,7 @@ describe("createApplication", () => {
             status: "pending",
           };
         },
-        markApproved: vi.fn(),
+        markApproved,
         markDone,
       },
       sendReply,
@@ -126,6 +129,7 @@ describe("createApplication", () => {
 
     await app.resumeApproval("ap1");
 
+    expect(markApproved).toHaveBeenCalledWith("ap1");
     expect(toolsRun).toHaveBeenCalledWith({ tool: "shell.exec", input: { command: "pwd" } });
     expect(appendEvent).toHaveBeenCalledWith("t1", expect.objectContaining({ kind: "tool.completed" }));
     expect(markDone).toHaveBeenCalledWith("t1");

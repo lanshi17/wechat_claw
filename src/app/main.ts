@@ -65,6 +65,7 @@ export function createApplication(deps: {
       if (!approval) return;
 
       const { threadId, action, reply } = approval;
+      deps.taskService.markApproved(approvalId);
 
       const result = await deps.tools.run(action);
       deps.taskService.appendEvent(threadId, {
