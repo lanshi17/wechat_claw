@@ -279,4 +279,50 @@ describe("createDefaultEntrypoint", () => {
     expect(second.threadId).toBe(first.threadId);
     expect(entry.taskService.getThread(first.threadId)?.status).toBe("waiting_approval");
   });
+
+  it("reuses a persisted waiting_approval thread after recreating the entrypoint", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "wechat-claw-entrypoint-"));
+    const dbPath = join(tempDir, "entrypoint.db");
+
+    try {
+      const writer = createDefaultEntrypoint({
+        env: {
+          ADMIN_USER_ID: "wxid_admin",
+          WORKSPACE_ROOT: "/workspace",
+          LLM_BASE_URL: "http://localhost:11434/v1",
+          LLM_MODEL: "qwen2.5-coder",
+          LLM_API_KEY: "",
+          LLM_SUPPORTS_IMAGE_INPUT: "false",
+          DATABASE_PATH: dbPath,
+        },
+      });
+
+      const first = writer.taskService.receiveMessage({
+        fromUserId: "wxid_user",
+        text: "persist this",
+      });
+      writer.taskService.markWaitingApproval(first.threadId);
+
+      const reader = createDefaultEntrypoint({
+        env: {
+          ADMIN_USER_ID: "wxid_admin",
+          WORKSPACE_ROOT: "/workspace",
+          LLM_BASE_URL: "http://localhost:11434/v1",
+          LLM_MODEL: "qwen2.5-coder",
+          LLM_API_KEY: "",
+          LLM_SUPPORTS_IMAGE_INPUT: "false",
+          DATABASE_PATH: dbPath,
+        },
+      });
+
+      const second = reader.taskService.receiveMessage({
+        fromUserId: "wxid_user",
+        text: "follow up",
+      });
+
+      expect(second.threadId).toBe(first.threadId);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
 });

@@ -31,6 +31,21 @@ export function createTaskService({
         return { threadId: existing.id };
       }
 
+      if (threadRepository) {
+        const persisted = routeThread(
+          threadRepository.listBySourceUserId(input.fromUserId).map((thread) => ({
+            id: thread.id,
+            fromUserId: thread.sourceUserId,
+            status: thread.status,
+          })),
+          input.fromUserId,
+        );
+
+        if (persisted) {
+          return { threadId: persisted.id };
+        }
+      }
+
       let threadId: string;
 
       if (threadRepository) {

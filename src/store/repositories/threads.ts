@@ -1,5 +1,6 @@
 import type Database from "better-sqlite3";
 import type { EventInput } from "./events.js";
+import type { TaskStatus } from "../../tasks/state-machine.js";
 
 export type ThreadInput = {
   sourceUserId: string;
@@ -10,7 +11,7 @@ export type ThreadRecord = {
   id: string;
   sourceUserId: string;
   title: string;
-  status: string;
+  status: TaskStatus;
 };
 
 export type ThreadEventRecord = {
@@ -56,7 +57,7 @@ export class ThreadRepository {
   get(threadId: string): ThreadRecord | undefined {
     const row = this.db
       .prepare("SELECT id, source_user_id, title, status FROM threads WHERE id = ?")
-      .get(threadId) as { id: string; source_user_id: string; title: string; status: string } | undefined;
+      .get(threadId) as { id: string; source_user_id: string; title: string; status: TaskStatus } | undefined;
 
     if (!row) {
       return undefined;
@@ -68,6 +69,19 @@ export class ThreadRepository {
       title: row.title,
       status: row.status,
     };
+  }
+
+  listBySourceUserId(sourceUserId: string): ThreadRecord[] {
+    const rows = this.db
+      .prepare("SELECT id, source_user_id, title, status FROM threads WHERE source_user_id = ? ORDER BY rowid ASC")
+      .all(sourceUserId) as Array<{ id: string; source_user_id: string; title: string; status: TaskStatus }>;
+
+    return rows.map((row) => ({
+      id: row.id,
+      sourceUserId: row.source_user_id,
+      title: row.title,
+      status: row.status,
+    }));
   }
 
   listEvents(threadId: string): ThreadEventRecord[] {
