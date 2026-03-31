@@ -7,5 +7,5 @@ export type ThreadRecord = {
 };
 
 export function routeThread(threads: ThreadRecord[], fromUserId: string): ThreadRecord | undefined {
-  return [...threads].reverse().find((thread) => thread.fromUserId === fromUserId && thread.status === "queued");
+  return [...threads].reverse().find((thread) => thread.fromUserId === fromUserId && thread.status !== "done");
 }

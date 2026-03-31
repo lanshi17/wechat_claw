@@ -104,6 +104,31 @@ describe("TaskService", () => {
     expect(approved?.status).toBe("approved");
   });
 
+  it("reuses a waiting approval thread for a second admin message", () => {
+    const service = createTaskService();
+
+    const first = service.receiveMessage({ fromUserId: "wxid_admin", text: "search rustls" });
+    service.markWaitingApproval(first.threadId);
+
+    const second = service.receiveMessage({ fromUserId: "wxid_admin", text: "now summarize it" });
+
+    expect(second.threadId).toBe(first.threadId);
+    expect(service.getThread(first.threadId)?.status).toBe("waiting_approval");
+  });
+
+  it("creates a new thread after the previous thread is done", () => {
+    const service = createTaskService();
+
+    const first = service.receiveMessage({ fromUserId: "wxid_admin", text: "search rustls" });
+    service.markDone(first.threadId);
+
+    const second = service.receiveMessage({ fromUserId: "wxid_admin", text: "start a new task" });
+
+    expect(second.threadId).not.toBe(first.threadId);
+    expect(service.getThread(first.threadId)?.status).toBe("done");
+    expect(service.getThread(second.threadId)?.status).toBe("queued");
+  });
+
   describe("with DB-backed repositories", () => {
     let db: Database.Database;
     let threadRepo: ThreadRepository;

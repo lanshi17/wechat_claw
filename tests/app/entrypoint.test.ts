@@ -250,4 +250,33 @@ describe("createDefaultEntrypoint", () => {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  it("reuses the same thread for a second message after waiting approval with sqlite repositories", () => {
+    const entry = createDefaultEntrypoint({
+      env: {
+        ADMIN_USER_ID: "wxid_admin",
+        WORKSPACE_ROOT: "/workspace",
+        LLM_BASE_URL: "http://localhost:11434/v1",
+        LLM_MODEL: "qwen2.5-coder",
+        LLM_API_KEY: "",
+        LLM_SUPPORTS_IMAGE_INPUT: "false",
+        DATABASE_PATH: ":memory:",
+      },
+    });
+
+    const first = entry.taskService.receiveMessage({
+      fromUserId: "wxid_user",
+      text: "first message",
+    });
+
+    entry.taskService.markWaitingApproval(first.threadId);
+
+    const second = entry.taskService.receiveMessage({
+      fromUserId: "wxid_user",
+      text: "follow up message",
+    });
+
+    expect(second.threadId).toBe(first.threadId);
+    expect(entry.taskService.getThread(first.threadId)?.status).toBe("waiting_approval");
+  });
 });
