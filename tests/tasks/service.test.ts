@@ -79,6 +79,31 @@ describe("TaskService", () => {
     expect(events[0].summary).toBe("web search done");
   });
 
+  it("reuses a waiting_approval thread for a second message from the same admin", () => {
+    const service = createTaskService();
+
+    const first = service.receiveMessage({ fromUserId: "wxid_admin", text: "search rustls" });
+    service.markWaitingApproval(first.threadId);
+
+    const second = service.receiveMessage({ fromUserId: "wxid_admin", text: "now summarize it" });
+
+    expect(service.getThread(first.threadId)?.status).toBe("waiting_approval");
+    expect(second.threadId).toBe(first.threadId);
+  });
+
+  it("creates a new thread after the previous one is marked done", () => {
+    const service = createTaskService();
+
+    const first = service.receiveMessage({ fromUserId: "wxid_admin", text: "search rustls" });
+    service.markDone(first.threadId);
+
+    const second = service.receiveMessage({ fromUserId: "wxid_admin", text: "now summarize it" });
+
+    expect(service.getThread(first.threadId)?.status).toBe("done");
+    expect(second.threadId).not.toBe(first.threadId);
+    expect(service.getThread(second.threadId)?.status).toBe("queued");
+  });
+
   it("supports approval lifecycle: create, mark waiting, get pending, and mark approved", () => {
     const service = createTaskService();
 
