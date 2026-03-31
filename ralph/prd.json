@@ -1,0 +1,67 @@
+{
+  "project": "wechat_claw",
+  "branchName": "ralph/thread-attach-slice",
+  "description": "Make inbound admin messages attach to the most recent unfinished thread instead of only reusing queued threads.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Route inbound messages to unfinished threads",
+      "description": "As a developer, I want thread routing to reuse the most recent unfinished thread for the same sender so that follow-up admin messages stay attached to the active conversation.",
+      "acceptanceCriteria": [
+        "routeThread reuses queued threads for the same fromUserId",
+        "routeThread reuses waiting_approval threads for the same fromUserId",
+        "routeThread does not reuse done threads",
+        "When multiple unfinished threads exist, routeThread returns the most recent unfinished thread",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Cover unfinished-thread reuse in TaskService",
+      "description": "As a developer, I want TaskService receiveMessage behavior covered by tests so that waiting-approval threads are reused and done threads start new work.",
+      "acceptanceCriteria": [
+        "A second message from the same admin reuses a waiting_approval thread",
+        "A second message after markDone creates a new thread instead of reusing the finished one",
+        "TaskService tests use the public receiveMessage, markWaitingApproval, and markDone API",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Verify SQLite-backed thread attachment behavior",
+      "description": "As a developer, I want composed entrypoint coverage for repository-backed thread reuse so that SQLite persistence stays aligned with the unfinished-thread routing contract.",
+      "acceptanceCriteria": [
+        "SQLite-backed composition reuses the same thread after markWaitingApproval for a second message from the same user",
+        "Repository-backed verification stays limited to thread attachment behavior",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Run slice verification suite",
+      "description": "As a developer, I want focused and full verification for the thread attach slice so that the routing change is proven without regressing unrelated behavior.",
+      "acceptanceCriteria": [
+        "Run vitest for thread-router, service, and entrypoint coverage with all tests passing",
+        "Run the full vitest suite with all tests passing",
+        "Run TypeScript typecheck with no errors",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
