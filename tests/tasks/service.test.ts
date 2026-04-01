@@ -62,21 +62,40 @@ describe("TaskService", () => {
     expect(service.getThread(first.threadId)?.status).toBe("queued");
   });
 
-  it("supports minimal event lifecycle: append event, mark done, and list events", () => {
+  it("records lifecycle and approval state for a thread", () => {
     const service = createTaskService();
 
-    const result = service.receiveMessage({ fromUserId: "wxid_admin", text: "search rustls" });
-    const threadId = result.threadId;
+    const received = service.receiveMessage({ fromUserId: "wxid_admin", text: "run pwd" });
+    service.appendEvent(received.threadId, { kind: "plan.created", summary: "plan created" });
+    service.markWaitingApproval(received.threadId, { tool: "shell.exec", summary: "waiting for shell approval" });
 
-    service.appendEvent(threadId, { kind: "tool.completed", summary: "web search done" });
-    service.markDone(threadId);
+    expect(service.getThread(received.threadId)).toEqual(
+      expect.objectContaining({
+        id: received.threadId,
+        title: "run pwd",
+        status: "waiting_approval",
+      }),
+    );
+    expect(service.listEvents(received.threadId)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "plan.created", summary: "plan created" }),
+        expect.objectContaining({ kind: "approval.requested", summary: "waiting for shell approval" }),
+      ]),
+    );
+  });
 
-    expect(service.getThread(threadId)?.status).toBe("done");
+  it("marks a thread failed with a failure event", () => {
+    const service = createTaskService();
 
-    const events = service.listEvents(threadId);
-    expect(events).toHaveLength(1);
-    expect(events[0].kind).toBe("tool.completed");
-    expect(events[0].summary).toBe("web search done");
+    const received = service.receiveMessage({ fromUserId: "wxid_admin", text: "run pwd" });
+    service.markFailed(received.threadId, "shell failed");
+
+    expect(service.getThread(received.threadId)?.status).toBe("failed");
+    expect(service.listEvents(received.threadId)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "thread.failed", summary: "shell failed" }),
+      ]),
+    );
   });
 
   it("reuses a waiting_approval thread for a second message from the same admin", () => {
@@ -114,7 +133,7 @@ describe("TaskService", () => {
     expect(approval.approvalId).toBeTruthy();
     const approvalId = approval.approvalId;
 
-    service.markWaitingApproval(threadId);
+    service.markWaitingApproval(threadId, { tool: "shell.exec", summary: "rm -rf /" });
     expect(service.getThread(threadId)?.status).toBe("waiting_approval");
 
     const pending = service.getPendingApproval(approvalId);

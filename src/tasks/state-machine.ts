@@ -1,4 +1,4 @@
-export type TaskStatus = "queued" | "done" | "waiting_approval";
+export type TaskStatus = "queued" | "done" | "waiting_approval" | "failed";
 
 export type TaskEvent = {
   kind: string;

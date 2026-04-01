@@ -61,6 +61,7 @@ export function createTaskService({
       const thread: TaskThread = {
         id: threadId,
         fromUserId: input.fromUserId,
+        title: input.text,
         status: "queued",
       };
 
@@ -85,6 +86,7 @@ export function createTaskService({
       return {
         id: persisted.id,
         fromUserId: persisted.sourceUserId,
+        title: persisted.title,
         status: persisted.status,
       };
     },
@@ -99,6 +101,13 @@ export function createTaskService({
       }
     },
     listEvents(threadId: string) {
+      if (threadRepository) {
+        return threadRepository.listEvents(threadId).map((event) => ({
+          kind: event.kind,
+          summary: event.summary,
+        }));
+      }
+
       return events.get(threadId) ?? [];
     },
     markDone(threadId: string) {
@@ -109,6 +118,18 @@ export function createTaskService({
 
       if (threadRepository) {
         threadRepository.updateStatus(threadId, "done");
+      }
+    },
+    markFailed(threadId: string, reason: string) {
+      const thread = threads.find((t) => t.id === threadId);
+      if (thread) {
+        thread.status = "failed";
+      }
+
+      this.appendEvent(threadId, { kind: "thread.failed", summary: reason });
+
+      if (threadRepository) {
+        threadRepository.updateStatus(threadId, "failed");
       }
     },
     createApprovalRequest(threadId: string, action: { tool: string; input: unknown }, reply: string) {
@@ -135,10 +156,17 @@ export function createTaskService({
 
       return { approvalId };
     },
-    markWaitingApproval(threadId: string) {
+    markWaitingApproval(threadId: string, approval?: { tool: string; summary: string }) {
       const thread = threads.find((t) => t.id === threadId);
       if (thread) {
         thread.status = "waiting_approval";
+      }
+
+      if (approval) {
+        this.appendEvent(threadId, {
+          kind: "approval.requested",
+          summary: approval.summary,
+        });
       }
 
       if (threadRepository) {

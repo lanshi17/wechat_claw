@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { createDefaultEntrypoint } from "../../src/app/entrypoint.js";
+import { bootstrapApplication } from "../../src/app/bootstrap.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 describe("createDefaultEntrypoint", () => {
+
   it("builds a runnable app and gateway from env", () => {
     const entry = createDefaultEntrypoint({
       env: {
@@ -324,5 +326,25 @@ describe("createDefaultEntrypoint", () => {
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("bootstrapApplication", () => {
+  it("returns a startable runtime with gateway and app", async () => {
+    const runtime = await bootstrapApplication({
+      env: {
+        ADMIN_USER_ID: "wxid_admin",
+        WORKSPACE_ROOT: "/workspace",
+        LLM_BASE_URL: "http://localhost:11434/v1",
+        LLM_MODEL: "qwen2.5-coder",
+        LLM_API_KEY: "",
+        LLM_SUPPORTS_IMAGE_INPUT: "false",
+        DATABASE_PATH: ":memory:",
+      },
+    });
+
+    expect(runtime.start).toBeTypeOf("function");
+    expect(runtime.app).toBeDefined();
+    expect(runtime.gateway).toBeDefined();
   });
 });
