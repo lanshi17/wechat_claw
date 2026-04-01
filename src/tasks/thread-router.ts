@@ -3,6 +3,7 @@ import type { TaskStatus } from "./state-machine.js";
 export type ThreadRecord = {
   id: string;
   fromUserId: string;
+  title: string;
   status: TaskStatus;
 };
 

@@ -8,7 +8,7 @@ export function createApplication(deps: {
     appendEvent(threadId: string, event: { kind: string; [key: string]: unknown }): void;
     markDone(threadId: string): void;
     createApprovalRequest?(threadId: string, action: { tool: string; input: unknown }, reply: string): { approvalId: string };
-    markWaitingApproval?(threadId: string): void;
+    markWaitingApproval?(threadId: string, approval: { tool: string; summary: string }): void;
     getPendingApproval?(approvalId: string):
       | { id: string; threadId: string; action: { tool: string; input: unknown }; reply: string; status: string }
       | undefined;
@@ -42,7 +42,10 @@ export function createApplication(deps: {
         } else if (classification.decision === "approval_required") {
           if (deps.taskService.createApprovalRequest && deps.taskService.markWaitingApproval) {
             const approval = deps.taskService.createApprovalRequest(threadId, action, plan.reply);
-            deps.taskService.markWaitingApproval(threadId);
+            deps.taskService.markWaitingApproval(threadId, {
+              tool: action.tool,
+              summary: plan.reply,
+            });
             await deps.sendReply(message.fromUserId, `Action requires approval. Approval ID: ${approval.approvalId}`);
             return;
           }
