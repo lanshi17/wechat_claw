@@ -17,19 +17,14 @@ This repository focuses on a small but complete MVP loop:
 
 ## 当前状态 / Current Status
 
-当前根仓库仍处于早期 MVP 开发阶段。
+当前仓库已经具备一条可运行的 smoke 路径，但默认入口仍是面向 MVP 收敛的开发切片，而不是完整产品入口。
 
-The root repository is still in an early MVP stage.
+The repository already has a runnable smoke path, but the default entrypoint is still an implementation slice aimed at converging on the MVP rather than a full product entrypoint.
 
-- 已有基础模块与测试：agent、task service、tool registry、approval engine、store、TUI、WeChat gateway
-- 当前仓库已经提供一个最小可运行的 smoke 路径：`start:mvp`
-- 这个 smoke 路径现在会演示一次完整的审批暂停/恢复闭环：`消息 -> 真实 provider 规划 -> 生成审批 -> CLI 批准 -> 工具执行 -> 回复`
-- 设计文档已经定义了更完整的 MVP 形态，当前实现仍是通往完整版本的中间切片
-
-- Core modules and tests already exist: agent, task service, tool registry, approval engine, store, TUI, and WeChat gateway.
-- The repository now exposes a minimal runnable smoke path via `start:mvp`.
-- That smoke path now demonstrates a full approval pause/resume loop driven by a real provider: `message -> real provider planning -> approval creation -> CLI approval -> tool execution -> reply`.
-- The design docs still describe a fuller MVP target; the current implementation is an intermediate runnable slice rather than the final version.
+- 已有基础模块与测试：agent、app、approval、store、tasks、tools、TUI、WeChat gateway / Core modules and tests already exist across agent, app, approval, store, tasks, tools, TUI, and the WeChat gateway
+- `start:mvp` 会构建项目并运行 `dist/cli.js` / `start:mvp` builds the project and runs `dist/cli.js`
+- 当前 smoke 流程会演示一次真实 provider 驱动的审批暂停/恢复闭环：管理员消息 → 调用已配置的 OpenAI-compatible provider 生成动作计划 → provider 返回需要审批的动作时创建审批 → CLI 批准 → 恢复执行 → 线程完成 / The current smoke flow demonstrates a real-provider-backed approval pause/resume loop: admin message → call the configured OpenAI-compatible provider for an action plan → create an approval when the provider returns an approval-required action → approval grant in the CLI → resumed execution → thread completion
+- 线程和审批会写入 SQLite，未完成线程会按来源用户复用 / Threads and approvals are stored in SQLite, and unfinished threads are reused for the same source user
 
 ## 快速开始 / Quick Start
 
@@ -77,17 +72,41 @@ npm run start:mvp
 
 This command currently does the following:
 
-- 加载当前环境配置 / Load the current environment config
-- 组装一个最小可运行的 app + gateway / Compose a minimal runnable app + gateway
-- 调用真实 OpenAI-compatible `/chat/completions` 端点生成计划结果 / Call a real OpenAI-compatible `/chat/completions` endpoint to produce the plan
-- 创建审批请求并打印 approval ID / Create an approval request and print the approval ID
-- 模拟一次 CLI 批准并恢复执行 / Simulate a CLI approval and resume execution
-- 打印最终线程完成状态 / Print the final thread completion status
+- 构建 TypeScript 输出到 `dist/` / Build the TypeScript output into `dist/`
+- 加载环境变量并初始化应用 / Load environment variables and bootstrap the app
+- 初始化 SQLite 数据库并自动应用 migration / Initialize the SQLite database and apply migrations automatically
+- 模拟一条管理员消息进入应用 / Simulate an admin message entering the app
+- 调用已配置的 OpenAI-compatible provider 生成回复与动作计划 / Call the configured OpenAI-compatible provider for the reply and action plan
+- 当 provider 返回需要审批的动作时创建审批 / Create an approval when the provider returns an approval-required action
+- 打印审批 ID，随后在 CLI 中标记批准并恢复执行 / Print the approval ID, then mark it approved and resume execution in the CLI
+- 打印最终线程状态 / Print the final thread status
 
-如果 `LLM_BASE_URL` 不可达或 API 配置错误，`start:mvp` 会显式失败并打印 provider 错误。
+### 5) 使用真实 provider / Use a real provider
 
-If `LLM_BASE_URL` is unreachable or API config is invalid, `start:mvp` will fail visibly with a provider error.
+`start:mvp` 现在默认走真实 provider 路径，你只需要提供可访问的 OpenAI-compatible 配置即可。
 
+`start:mvp` now uses the real provider path by default, so you only need to supply reachable OpenAI-compatible settings.
+
+运行前请确认：
+
+Before running, make sure that:
+
+- `LLM_BASE_URL` 指向可访问的 OpenAI-compatible API base URL / `LLM_BASE_URL` points to a reachable OpenAI-compatible API base URL
+- CLI 会向 `LLM_BASE_URL + /chat/completions` 发送 `POST` 请求 / The CLI sends a `POST` request to `LLM_BASE_URL + /chat/completions`
+- 响应体需要提供 `choices[0].message.content` / The response body must provide `choices[0].message.content`
+- 当 `content` 是 JSON 时，CLI 会尝试按 `{ reply, actions }` 解析它 / When `content` is JSON, the CLI attempts to parse it as `{ reply, actions }`
+
+要触发当前 smoke MVP 的审批断言，provider 返回内容需要兼容下面的形态：
+
+To trigger the current smoke MVP approval assertion, the provider response content needs to match a shape like:
+
+```json
+{"reply":"Need approval","actions":[{"tool":"shell.exec","input":{"command":"pwd"}}]}
+```
+
+如果 provider 只返回纯文本，CLI 仍会把它当作回复处理，但可能不会创建审批，当前 smoke 断言也会失败。
+
+If the provider only returns plain text, the CLI still treats it as a reply, but it may not create an approval and the current smoke assertion can fail.
 
 ## 环境变量 / Environment Variables
 
@@ -99,7 +118,7 @@ The current required environment variables in code are:
 | --- | --- | --- |
 | `ADMIN_USER_ID` | `wxid_admin` | 允许发送控制消息的管理员 WeChat 用户 ID / Trusted admin WeChat user ID |
 | `WORKSPACE_ROOT` | `/workspace` | 文件读写与命令执行允许访问的工作区根目录 / Allowed workspace root for file and shell operations |
-| `LLM_BASE_URL` | `http://localhost:11434/v1` | OpenAI-compatible API base URL / OpenAI-compatible API base URL |
+| `LLM_BASE_URL` | `http://localhost:11434/v1` | OpenAI-compatible API base URL used by the default `start:mvp` provider path / OpenAI-compatible API base URL used by the default `start:mvp` provider path |
 | `LLM_MODEL` | `qwen2.5-coder` | 要调用的模型名 / Model name to use |
 | `LLM_API_KEY` | `sk-test-123` | 可选的 API Key；某些兼容服务可留空 / Optional API key; may be empty for some compatible services |
 | `LLM_SUPPORTS_IMAGE_INPUT` | `false` | 可选，是否支持图像输入；未设置时默认关闭 / Optional image-input capability flag; defaults to disabled when omitted |
@@ -180,13 +199,9 @@ The target MVP is designed to support:
 
 Current root-repo limitations:
 
-- 还没有把完整端到端运行路径作为根仓库默认入口稳定暴露出来
-- README 当前以测试与类型检查为主，而不是以完整运行流程为主
-- 项目仍处于 MVP 收敛阶段，部分能力仍以设计文档和渐进实现为准
-
-- A fully stable end-to-end runtime path is not yet exposed as the default root-repo entrypoint.
-- This README focuses on tests and typecheck rather than a fully supported runtime flow.
-- The project is still converging on the MVP, so some behavior is defined by design docs and incremental implementation work.
+- `start:mvp` 依赖可访问的 OpenAI-compatible endpoint，以及能返回兼容 `choices[0].message.content` 形态的响应 / `start:mvp` depends on a reachable OpenAI-compatible endpoint and a response shape compatible with `choices[0].message.content`
+- README 当前以测试与类型检查为主，而不是以完整运行流程为主 / This README still focuses on tests and typecheck rather than a fully supported runtime flow.
+- 项目仍处于 MVP 收敛阶段，部分能力仍以设计文档和渐进实现为准 / The project is still converging on the MVP, so some behavior is defined by design docs and incremental implementation work.
 
 ## Roadmap / Next Steps
 

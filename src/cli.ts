@@ -2,23 +2,6 @@ import { bootstrapApplication } from "./app/bootstrap.js";
 
 async function main() {
   const env = process.env;
-  const originalFetch = globalThis.fetch;
-
-  globalThis.fetch = (async () => ({
-    ok: true,
-    json: async () => ({
-      choices: [
-        {
-          message: {
-            content: JSON.stringify({
-              reply: "Need approval.",
-              actions: [{ tool: "shell.exec", input: { command: "pwd" } }],
-            }),
-          },
-        },
-      ],
-    }),
-  })) as unknown as typeof fetch;
 
   try {
     const result = await bootstrapApplication({ env });
@@ -83,8 +66,6 @@ async function main() {
       console.error("✗ Bootstrap failed:", String(error));
     }
     process.exit(1);
-  } finally {
-    globalThis.fetch = originalFetch;
   }
 }
 
