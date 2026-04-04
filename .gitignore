@@ -3,4 +3,5 @@ pnpm-lock.yaml
 coverage/
 dist/
 .worktrees/
+.claude/
 .env
