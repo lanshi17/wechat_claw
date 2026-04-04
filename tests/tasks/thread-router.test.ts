@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { routeThread, type ThreadRecord } from "../../src/tasks/thread-router.js";
+import { routeThread, type ThreadRouteRecord } from "../../src/tasks/thread-router.js";
 
-function makeThread(overrides: Partial<ThreadRecord> & Pick<ThreadRecord, "id" | "fromUserId" | "status">): ThreadRecord {
+function makeThread(
+  overrides: Partial<ThreadRouteRecord> & Pick<ThreadRouteRecord, "id" | "fromUserId" | "status">,
+): ThreadRouteRecord {
   return {
     id: overrides.id,
     fromUserId: overrides.fromUserId,

@@ -1,12 +1,15 @@
 import type { TaskStatus } from "./state-machine.js";
 
-export type ThreadRecord = {
+export type ThreadRouteRecord = {
   id: string;
   fromUserId: string;
-  title: string;
   status: TaskStatus;
 };
 
-export function routeThread(threads: ThreadRecord[], fromUserId: string): ThreadRecord | undefined {
+export type ThreadRecord = ThreadRouteRecord & {
+  title: string;
+};
+
+export function routeThread<T extends ThreadRouteRecord>(threads: T[], fromUserId: string): T | undefined {
   return [...threads].reverse().find((thread) => thread.fromUserId === fromUserId && thread.status !== "done");
 }
