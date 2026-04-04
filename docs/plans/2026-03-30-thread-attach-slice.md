@@ -1,5 +1,7 @@
 # Thread Attach Slice Implementation Plan
 
+> **Status:** Implemented in repository history. Repository-level verification was refreshed on 2026-04-05 with `npm test`, `npx tsc --noEmit`, and `npm run build`.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Make inbound admin messages attach to the most recent unfinished thread instead of only reusing queued threads.

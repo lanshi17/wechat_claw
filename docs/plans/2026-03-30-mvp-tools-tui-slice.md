@@ -1,5 +1,7 @@
 # MVP Tool Registry + TUI Slice Implementation Plan
 
+> **Status:** Implemented in repository history. Repository-level verification was refreshed on 2026-04-05 with `npm test`, `npx tsc --noEmit`, and `npm run build`.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Expand the MVP tool registry to the full planned tool surface and add a richer but still minimal TUI projection for thread events and approvals.

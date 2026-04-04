@@ -1,5 +1,7 @@
 # Runnable MVP Smoke Slice Implementation Plan
 
+> **Status:** Implemented in repository history. Repository-level verification was refreshed on 2026-04-05 with `npm test`, `npx tsc --noEmit`, and `npm run build`.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Turn the current `master` branch into a smoke-runnable MVP slice that can simulate one trusted admin message, produce one auto-approved tool action, execute it, and emit a final reply.

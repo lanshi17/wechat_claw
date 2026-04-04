@@ -1,5 +1,7 @@
 # WeChat Agent TUI MVP Implementation Plan
 
+> **Status:** Implemented in repository history. Repository-level verification was refreshed on 2026-04-05 with `npm test`, `npx tsc --noEmit`, and `npm run build`.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Turn the current layered skeleton into a runnable local MVP that accepts an admin WeChat message, plans reply/tool actions, auto-runs safe tools, pauses risky tools for approval, and exposes a smoke-testable startup path.

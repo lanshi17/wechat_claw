@@ -1,5 +1,7 @@
 # Real HTTP Provider Smoke Slice Implementation Plan
 
+> **Status:** Implemented in repository history. Repository-level verification was refreshed on 2026-04-05 with `npm test`, `npx tsc --noEmit`, and `npm run build`.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Replace the fake OpenAI-compatible provider with a real HTTP-backed provider while keeping the existing smoke flow, approval-resume behavior, and SQLite-backed state intact.

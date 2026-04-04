@@ -1,5 +1,7 @@
 # OpenAI-Compatible Provider Migration Implementation Plan
 
+> **Status:** Implemented in repository history. Repository-level verification was refreshed on 2026-04-05 with `npm test`, `npx tsc --noEmit`, and `npm run build`.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Replace the current provider-name-based LLM configuration with a single OpenAI-compatible configuration model that supports custom base URLs, custom model names, an optional API key, and explicit image capability settings.
