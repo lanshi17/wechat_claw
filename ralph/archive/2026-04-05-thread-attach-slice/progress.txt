@@ -1,0 +1,14 @@
+# Ralph Progress
+
+Project: wechat_claw
+Branch: ralph/thread-attach-slice
+Status: Not started
+
+## User Stories
+- [ ] US-001 Route inbound messages to unfinished threads
+- [ ] US-002 Cover unfinished-thread reuse in TaskService
+- [ ] US-003 Verify SQLite-backed thread attachment behavior
+- [ ] US-004 Run slice verification suite
+
+## Notes
+- Progress file initialized.

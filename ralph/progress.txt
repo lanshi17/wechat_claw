@@ -1,14 +1,15 @@
 # Ralph Progress
 
 Project: wechat_claw
-Branch: ralph/thread-attach-slice
+Branch: ralph/operator-approval-flow
 Status: Not started
 
 ## User Stories
-- [ ] US-001 Route inbound messages to unfinished threads
-- [ ] US-002 Cover unfinished-thread reuse in TaskService
-- [ ] US-003 Verify SQLite-backed thread attachment behavior
-- [ ] US-004 Run slice verification suite
+- [ ] US-001 Persist rejected approval decisions
+- [ ] US-002 Add explicit rejection handling in the app loop
+- [ ] US-003 Add reusable CLI commands for message, approve, and reject
+- [ ] US-004 Project approval decisions and failures into the TUI view model
+- [ ] US-005 Verify the approval decision loop across SQLite-backed composition
 
 ## Notes
-- Progress file initialized.
+- Progress file reset after archiving the previous thread-attach-slice run on 2026-04-05.
