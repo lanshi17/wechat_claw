@@ -71,6 +71,19 @@ export class ThreadRepository {
     };
   }
 
+  listAll(): ThreadRecord[] {
+    const rows = this.db
+      .prepare("SELECT id, source_user_id, title, status FROM threads ORDER BY rowid ASC")
+      .all() as Array<{ id: string; source_user_id: string; title: string; status: TaskStatus }>;
+
+    return rows.map((row) => ({
+      id: row.id,
+      sourceUserId: row.source_user_id,
+      title: row.title,
+      status: row.status,
+    }));
+  }
+
   listBySourceUserId(sourceUserId: string): ThreadRecord[] {
     const rows = this.db
       .prepare("SELECT id, source_user_id, title, status FROM threads WHERE source_user_id = ? ORDER BY rowid ASC")

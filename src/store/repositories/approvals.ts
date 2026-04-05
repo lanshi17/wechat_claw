@@ -69,6 +69,20 @@ export class ApprovalRepository {
     };
   }
 
+  listAll(): ApprovalRecord[] {
+    const rows = this.db
+      .prepare("SELECT id, thread_id, status, action, reply FROM approval_requests ORDER BY rowid ASC")
+      .all() as Array<{ id: string; thread_id: string; status: string; action: string; reply: string }>;
+
+    return rows.map((row) => ({
+      id: row.id,
+      threadId: row.thread_id,
+      status: row.status as ApprovalStatus,
+      action: JSON.parse(row.action) as ApprovalAction,
+      reply: row.reply,
+    }));
+  }
+
   markApproved(approvalId: string): void {
     this.db
       .prepare("UPDATE approval_requests SET status = ? WHERE id = ?")

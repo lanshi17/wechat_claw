@@ -90,6 +90,18 @@ export function createTaskService({
         status: persisted.status,
       };
     },
+    listThreads() {
+      if (threadRepository) {
+        return threadRepository.listAll().map((thread) => ({
+          id: thread.id,
+          fromUserId: thread.sourceUserId,
+          title: thread.title,
+          status: thread.status,
+        }));
+      }
+
+      return [...threads];
+    },
     appendEvent(threadId: string, event: TaskEvent) {
       if (!events.has(threadId)) {
         events.set(threadId, []);
@@ -183,6 +195,25 @@ export function createTaskService({
       }
 
       return approvals.get(approvalId);
+    },
+    listApprovals() {
+      if (approvalRepository) {
+        return approvalRepository.listAll().map((approval) => ({
+          id: approval.id,
+          threadId: approval.threadId,
+          action: approval.action,
+          reply: approval.reply,
+          status: approval.status,
+        }));
+      }
+
+      return Array.from(approvals.values()).map((approval) => ({
+        id: approval.id,
+        threadId: approval.threadId,
+        action: approval.action,
+        reply: approval.reply,
+        status: approval.status,
+      }));
     },
     markApproved(approvalId: string) {
       const approval = approvals.get(approvalId);

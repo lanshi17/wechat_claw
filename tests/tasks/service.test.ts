@@ -164,6 +164,61 @@ describe("TaskService", () => {
     expect(rejected?.status).toBe("rejected");
   });
 
+  it("lists threads and approvals in stable order with current statuses", () => {
+    const service = createTaskService();
+
+    const first = service.receiveMessage({ fromUserId: "wxid_alpha", text: "first task" });
+    const second = service.receiveMessage({ fromUserId: "wxid_beta", text: "second task" });
+
+    service.markDone(first.threadId);
+    service.markWaitingApproval(second.threadId, { tool: "shell.exec", summary: "needs approval" });
+
+    const firstApproval = service.createApprovalRequest(
+      first.threadId,
+      { tool: "shell.exec", input: { command: "pwd" } },
+      "approve pwd",
+    );
+    const secondApproval = service.createApprovalRequest(
+      second.threadId,
+      { tool: "fs.write", input: { path: "/tmp/demo" } },
+      "write file",
+    );
+
+    service.markApproved(firstApproval.approvalId);
+    service.markRejected(secondApproval.approvalId);
+
+    expect(service.listThreads()).toEqual([
+      {
+        id: first.threadId,
+        fromUserId: "wxid_alpha",
+        title: "first task",
+        status: "done",
+      },
+      {
+        id: second.threadId,
+        fromUserId: "wxid_beta",
+        title: "second task",
+        status: "waiting_approval",
+      },
+    ]);
+    expect(service.listApprovals()).toEqual([
+      {
+        id: firstApproval.approvalId,
+        threadId: first.threadId,
+        status: "approved",
+        action: { tool: "shell.exec", input: { command: "pwd" } },
+        reply: "approve pwd",
+      },
+      {
+        id: secondApproval.approvalId,
+        threadId: second.threadId,
+        status: "rejected",
+        action: { tool: "fs.write", input: { path: "/tmp/demo" } },
+        reply: "write file",
+      },
+    ]);
+  });
+
   it("reuses a waiting approval thread for a second admin message", () => {
     const service = createTaskService();
 
@@ -287,6 +342,61 @@ describe("TaskService", () => {
       const updated = service.getPendingApproval(approval.approvalId);
       expect(updated?.status).toBe("rejected");
       expect(approvalRepo.get(approval.approvalId)?.status).toBe("rejected");
+    });
+
+    it("lists repository-backed threads and approvals in stable order with current statuses", () => {
+      const service = createTaskService({ threadRepository: threadRepo, approvalRepository: approvalRepo });
+
+      const first = service.receiveMessage({ fromUserId: "wxid_alpha", text: "first persisted task" });
+      const second = service.receiveMessage({ fromUserId: "wxid_beta", text: "second persisted task" });
+
+      service.markDone(first.threadId);
+      service.markWaitingApproval(second.threadId, { tool: "shell.exec", summary: "needs approval" });
+
+      const firstApproval = service.createApprovalRequest(
+        first.threadId,
+        { tool: "shell.exec", input: { command: "pwd" } },
+        "approve persisted pwd",
+      );
+      const secondApproval = service.createApprovalRequest(
+        second.threadId,
+        { tool: "fs.write", input: { path: "/tmp/persisted-demo" } },
+        "write persisted file",
+      );
+
+      service.markApproved(firstApproval.approvalId);
+      service.markRejected(secondApproval.approvalId);
+
+      expect(service.listThreads()).toEqual([
+        {
+          id: first.threadId,
+          fromUserId: "wxid_alpha",
+          title: "first persisted task",
+          status: "done",
+        },
+        {
+          id: second.threadId,
+          fromUserId: "wxid_beta",
+          title: "second persisted task",
+          status: "waiting_approval",
+        },
+      ]);
+      expect(service.listApprovals()).toEqual([
+        {
+          id: firstApproval.approvalId,
+          threadId: first.threadId,
+          status: "approved",
+          action: { tool: "shell.exec", input: { command: "pwd" } },
+          reply: "approve persisted pwd",
+        },
+        {
+          id: secondApproval.approvalId,
+          threadId: second.threadId,
+          status: "rejected",
+          action: { tool: "fs.write", input: { path: "/tmp/persisted-demo" } },
+          reply: "write persisted file",
+        },
+      ]);
     });
   });
 });
