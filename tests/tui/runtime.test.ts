@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createTuiController } from "../../src/tui/runtime.js";
+import { createTuiController, decodeTerminalInput } from "../../src/tui/runtime.js";
 import type { ApprovalQueueItem } from "../../src/tui/widgets/approval-queue.js";
 
 function approvalItem(overrides: Partial<ApprovalQueueItem> = {}): ApprovalQueueItem {
@@ -114,5 +114,29 @@ describe("createTuiController", () => {
       selectedApprovalIndex: 0,
       rejectReason: "",
     });
+  });
+
+  it("decodes terminal key input for navigation and reject entry", () => {
+    expect(decodeTerminalInput("j")).toEqual([{ kind: "down" }]);
+    expect(decodeTerminalInput("k")).toEqual([{ kind: "up" }]);
+    expect(decodeTerminalInput("\u001b[B")).toEqual([{ kind: "down" }]);
+    expect(decodeTerminalInput("\u001b[A")).toEqual([{ kind: "up" }]);
+    expect(decodeTerminalInput("a")).toEqual([{ kind: "approve" }]);
+    expect(decodeTerminalInput("r")).toEqual([{ kind: "reject" }]);
+    expect(decodeTerminalInput("q")).toEqual([{ kind: "quit" }]);
+    expect(decodeTerminalInput("\r")).toEqual([{ kind: "submit" }]);
+    expect(decodeTerminalInput("\u007f")).toEqual([{ kind: "backspace" }]);
+    expect(decodeTerminalInput("\u001b")).toEqual([{ kind: "escape" }]);
+    expect(decodeTerminalInput("no")).toEqual([
+      { kind: "char", value: "n" },
+      { kind: "char", value: "o" },
+    ]);
+  });
+
+  it("treats printable keys as text while reject input is active", () => {
+    expect(decodeTerminalInput("r", "reject_input")).toEqual([{ kind: "char", value: "r" }]);
+    expect(decodeTerminalInput("q", "reject_input")).toEqual([{ kind: "char", value: "q" }]);
+    expect(decodeTerminalInput("\r", "reject_input")).toEqual([{ kind: "submit" }]);
+    expect(decodeTerminalInput("\u001b", "reject_input")).toEqual([{ kind: "escape" }]);
   });
 });

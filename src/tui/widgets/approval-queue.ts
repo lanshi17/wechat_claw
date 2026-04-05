@@ -4,4 +4,6 @@ export type ApprovalQueueItem = {
   tool: string;
   status: string;
   summary?: string;
+  label?: string;
+  isSelected?: boolean;
 };
