@@ -148,6 +148,22 @@ describe("TaskService", () => {
     expect(approved?.status).toBe("approved");
   });
 
+  it("supports rejecting an approval in memory", () => {
+    const service = createTaskService();
+
+    const result = service.receiveMessage({ fromUserId: "wxid_admin", text: "run dangerous command" });
+    const { approvalId } = service.createApprovalRequest(
+      result.threadId,
+      { tool: "shell.exec", input: { command: "rm -rf /tmp/demo" } },
+      "Reject this command?",
+    );
+
+    service.markRejected(approvalId);
+
+    const rejected = service.getPendingApproval(approvalId);
+    expect(rejected?.status).toBe("rejected");
+  });
+
   it("reuses a waiting approval thread for a second admin message", () => {
     const service = createTaskService();
 
@@ -252,6 +268,25 @@ describe("TaskService", () => {
       const updated = service.getPendingApproval(approvalId);
       expect(updated?.status).toBe("approved");
       expect(approvalRepo.get(approvalId)?.status).toBe("approved");
+    });
+
+    it("persists rejected approvals to database", () => {
+      const service = createTaskService({ threadRepository: threadRepo, approvalRepository: approvalRepo });
+
+      const result = service.receiveMessage({ fromUserId: "wxid_admin", text: "search rustls" });
+      const threadId = result.threadId;
+
+      const approval = service.createApprovalRequest(
+        threadId,
+        { tool: "shell.exec", input: { command: "rm -rf /tmp/demo" } },
+        "reject this command",
+      );
+
+      service.markRejected(approval.approvalId);
+
+      const updated = service.getPendingApproval(approval.approvalId);
+      expect(updated?.status).toBe("rejected");
+      expect(approvalRepo.get(approval.approvalId)?.status).toBe("rejected");
     });
   });
 });

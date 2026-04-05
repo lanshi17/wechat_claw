@@ -74,4 +74,10 @@ export class ApprovalRepository {
       .prepare("UPDATE approval_requests SET status = ? WHERE id = ?")
       .run("approved", approvalId);
   }
+
+  markRejected(approvalId: string): void {
+    this.db
+      .prepare("UPDATE approval_requests SET status = ? WHERE id = ?")
+      .run("rejected", approvalId);
+  }
 }

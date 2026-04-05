@@ -57,6 +57,19 @@ describe("ApprovalRepository", () => {
     expect(updated?.status).toBe("approved");
   });
 
+  it("marks approval as rejected", () => {
+    const approval = approvalRepo.create({
+      threadId,
+      action: { tool: "shell.exec", input: { command: "pwd" } },
+      reply: "Reject this command?",
+    });
+
+    approvalRepo.markRejected(approval.id);
+
+    const updated = approvalRepo.get(approval.id);
+    expect(updated?.status).toBe("rejected");
+  });
+
   it("persists action as JSON in database", () => {
     const complexAction = {
       tool: "shell.exec",

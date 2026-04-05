@@ -194,5 +194,15 @@ export function createTaskService({
         approvalRepository.markApproved(approvalId);
       }
     },
+    markRejected(approvalId: string) {
+      const approval = approvals.get(approvalId);
+      if (approval) {
+        approval.status = "rejected";
+      }
+
+      if (approvalRepository) {
+        approvalRepository.markRejected(approvalId);
+      }
+    },
   };
 }
