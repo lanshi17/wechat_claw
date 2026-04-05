@@ -1,0 +1,16 @@
+# Ralph Progress
+
+Project: wechat_claw
+Branch: ralph/operator-approval-flow
+Status: Completed
+
+## User Stories
+- [x] US-001 Persist rejected approval decisions
+- [x] US-002 Add explicit rejection handling in the app loop
+- [x] US-003 Add reusable CLI commands for message, approve, and reject
+- [x] US-004 Project approval decisions and failures into the TUI view model
+- [x] US-005 Verify the approval decision loop across SQLite-backed composition
+
+## Notes
+- Progress file reset after archiving the previous thread-attach-slice run on 2026-04-05.
+- Verified on 2026-04-05 with `npx vitest run tests/store/approvals.test.ts tests/tasks/service.test.ts tests/app/main.test.ts tests/cli.test.ts tests/tui/app.test.ts tests/app/entrypoint.test.ts`, `npm test`, and `npx tsc --noEmit`.

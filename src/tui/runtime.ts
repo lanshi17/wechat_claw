@@ -74,7 +74,9 @@ function clampSelection(index: number, approvals: ApprovalQueueItem[]) {
   return Math.min(Math.max(index, 0), approvals.length - 1);
 }
 
-function isPendingApproval(approval: ApprovalQueueItem | undefined) {
+function isPendingApproval(
+  approval: ApprovalQueueItem | undefined,
+): approval is ApprovalQueueItem & { status: "pending" } {
   return approval?.status === "pending";
 }
 

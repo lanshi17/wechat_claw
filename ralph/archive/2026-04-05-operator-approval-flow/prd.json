@@ -1,0 +1,85 @@
+{
+  "project": "wechat_claw",
+  "branchName": "ralph/operator-approval-flow",
+  "description": "Complete the next MVP operator slice by adding explicit approval rejection handling, command-driven operator actions, richer TUI state projection, and integration coverage for the approval decision loop.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Persist rejected approval decisions",
+      "description": "As a developer, I want approval storage and task-service APIs to support rejected approvals so that the MVP can record operator rejection as a first-class state change.",
+      "acceptanceCriteria": [
+        "ApprovalRepository exposes markRejected(approvalId) and persists status 'rejected'",
+        "TaskService exposes markRejected(approvalId) for both in-memory and repository-backed modes",
+        "Store and task-service tests cover pending to rejected transitions",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Add explicit rejection handling in the app loop",
+      "description": "As an operator, I want the app loop to handle rejected approvals explicitly so that a risky action can be rejected without running the tool and the thread ends in a clear failed state.",
+      "acceptanceCriteria": [
+        "createApplication exposes an explicit rejection path for a stored approval",
+        "Rejecting an approval does not call tools.run for the stored action",
+        "Rejecting an approval appends an approval.rejected event and marks the thread failed",
+        "Rejecting an approval sends a final operator-facing reply that includes the rejection outcome",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Add reusable CLI commands for message, approve, and reject",
+      "description": "As a local operator, I want the CLI to support message, approve, and reject commands so that I can drive the MVP flow without relying on the current hardcoded smoke script.",
+      "acceptanceCriteria": [
+        "CLI supports a message command that submits an admin message through the composed app path",
+        "CLI supports an approve <approvalId> command that resumes the stored action and prints the final thread status",
+        "CLI supports a reject <approvalId> command that records rejection and prints the failed thread status without running the tool",
+        "CLI tests cover command parsing and the approve/reject execution path",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Project approval decisions and failures into the TUI view model",
+      "description": "As an operator, I want the TUI state model to surface approval decisions and failure summaries so that I can see rejected work and its reason without reading raw storage records.",
+      "acceptanceCriteria": [
+        "Approval queue items include approval status in the projected view-model shape",
+        "Thread display data includes the latest rejection or failure summary when present",
+        "Main screen event projection includes approval.rejected and thread.failed summaries",
+        "TUI projection tests cover rejected and failed thread state",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Verify the approval decision loop across SQLite-backed composition",
+      "description": "As a developer, I want entrypoint-level integration coverage for both approval and rejection flows so that the persisted operator decision loop is proven end to end.",
+      "acceptanceCriteria": [
+        "Entrypoint coverage proves message to approval to approve flow with persisted SQLite state",
+        "Entrypoint coverage proves message to approval to reject flow with persisted SQLite state",
+        "Focused integration coverage stays limited to the operator decision lifecycle",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}
