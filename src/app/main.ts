@@ -7,12 +7,14 @@ export function createApplication(deps: {
     receiveMessage(): { threadId: string };
     appendEvent(threadId: string, event: { kind: string; [key: string]: unknown }): void;
     markDone(threadId: string): void;
+    markFailed?(threadId: string, reason: string): void;
     createApprovalRequest?(threadId: string, action: { tool: string; input: unknown }, reply: string): { approvalId: string };
     markWaitingApproval?(threadId: string, approval: { tool: string; summary: string }): void;
     getPendingApproval?(approvalId: string):
       | { id: string; threadId: string; action: { tool: string; input: unknown }; reply: string; status: string }
       | undefined;
     markApproved?(approvalId: string): void;
+    markRejected?(approvalId: string): void;
   };
   sendReply: (userId: string, text: string) => Promise<void> | void;
 }) {
@@ -79,6 +81,25 @@ export function createApplication(deps: {
 
       deps.taskService.markDone(threadId);
       await deps.sendReply(deps.adminUserId, reply);
+    },
+
+    async rejectApproval(approvalId: string, reason?: string) {
+      if (!deps.taskService.getPendingApproval || !deps.taskService.markRejected) {
+        return;
+      }
+
+      const approval = deps.taskService.getPendingApproval(approvalId);
+      if (!approval) return;
+
+      const { threadId } = approval;
+      const summary = reason ?? `Approval ${approvalId} was rejected.`;
+      deps.taskService.markRejected(approvalId);
+      deps.taskService.appendEvent(threadId, {
+        kind: "approval.rejected",
+        summary,
+      });
+      deps.taskService.markFailed?.(threadId, summary);
+      await deps.sendReply(deps.adminUserId, `Rejected approval ${approvalId}: ${summary}`);
     },
   };
 }

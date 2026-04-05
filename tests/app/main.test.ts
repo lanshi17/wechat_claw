@@ -199,4 +199,63 @@ describe("createApplication", () => {
     expect(toolsRun).toHaveBeenCalledTimes(1);
     expect(sendReply).toHaveBeenCalledWith("wxid_admin", expect.stringContaining("ap1"));
   });
+
+  it("rejects a stored approval without running the tool and marks the thread failed", async () => {
+    const sendReply = vi.fn();
+    const appendEvent = vi.fn();
+    const markRejected = vi.fn();
+    const markFailed = vi.fn();
+    const toolsRun = vi.fn();
+
+    const app = createApplication({
+      adminUserId: "wxid_admin",
+      runtime: {
+        async planNext() {
+          return {
+            reply: "Need approval.",
+            actions: [{ tool: "shell.exec", input: { command: "pwd" } }],
+          };
+        },
+      },
+      approvals: {
+        classifyAction() {
+          return { decision: "approval_required" as const };
+        },
+      },
+      tools: { run: toolsRun },
+      taskService: {
+        receiveMessage() {
+          return { threadId: "t1" };
+        },
+        appendEvent,
+        markDone: vi.fn(),
+        createApprovalRequest: vi.fn().mockReturnValue({ approvalId: "ap1" }),
+        markWaitingApproval: vi.fn(),
+        getPendingApproval() {
+          return {
+            id: "ap1",
+            threadId: "t1",
+            action: { tool: "shell.exec", input: { command: "pwd" } },
+            reply: "Need approval.",
+            status: "pending",
+          };
+        },
+        markApproved: vi.fn(),
+        markRejected,
+        markFailed,
+      },
+      sendReply,
+    });
+
+    await app.rejectApproval("ap1", "too risky");
+
+    expect(markRejected).toHaveBeenCalledWith("ap1");
+    expect(appendEvent).toHaveBeenCalledWith(
+      "t1",
+      expect.objectContaining({ kind: "approval.rejected", summary: "too risky" }),
+    );
+    expect(markFailed).toHaveBeenCalledWith("t1", expect.stringContaining("too risky"));
+    expect(toolsRun).not.toHaveBeenCalled();
+    expect(sendReply).toHaveBeenCalledWith("wxid_admin", expect.stringContaining("too risky"));
+  });
 });
