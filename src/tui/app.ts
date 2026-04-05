@@ -16,7 +16,7 @@ export function buildMainViewModel(input: {
 
   return {
     threadItems,
-    pendingApprovalCount: input.approvals.length,
+    pendingApprovalCount: input.approvals.filter((approval) => approval.status === "pending").length,
     approvalItems: input.approvals,
     eventItems: input.events ?? [],
   };
