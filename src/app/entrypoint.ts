@@ -71,11 +71,14 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
       appendEvent(threadId: string, event: { kind: string; [key: string]: unknown }) {
         taskServiceImpl.appendEvent(threadId, {
           kind: event.kind,
-          summary: `Event: ${event.kind}`,
+          summary: typeof event.summary === "string" ? event.summary : `Event: ${event.kind}`,
         });
       },
       markDone(threadId: string) {
         taskServiceImpl.markDone(threadId);
+      },
+      markFailed(threadId: string, reason: string) {
+        taskServiceImpl.markFailed(threadId, reason);
       },
       createApprovalRequest(threadId: string, action: { tool: string; input: unknown }, reply: string) {
         return taskServiceImpl.createApprovalRequest(threadId, action, reply);
@@ -88,6 +91,9 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
       },
       markApproved(approvalId: string) {
         taskServiceImpl.markApproved(approvalId);
+      },
+      markRejected(approvalId: string) {
+        taskServiceImpl.markRejected(approvalId);
       },
     },
     sendReply: async () => {},

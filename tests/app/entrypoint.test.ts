@@ -327,6 +327,110 @@ describe("createDefaultEntrypoint", () => {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  it("resumes a persisted approval after recreating the entrypoint", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "wechat-claw-entrypoint-"));
+    const dbPath = join(tempDir, "entrypoint.db");
+
+    try {
+      const writer = createDefaultEntrypoint({
+        env: {
+          ADMIN_USER_ID: "wxid_admin",
+          WORKSPACE_ROOT: "/workspace",
+          LLM_BASE_URL: "http://localhost:11434/v1",
+          LLM_MODEL: "qwen2.5-coder",
+          LLM_API_KEY: "",
+          LLM_SUPPORTS_IMAGE_INPUT: "false",
+          DATABASE_PATH: dbPath,
+        },
+      });
+
+      const { threadId } = writer.taskService.receiveMessage({
+        fromUserId: "wxid_admin",
+        text: "run pwd",
+      });
+      const { approvalId } = writer.taskService.createApprovalRequest(
+        threadId,
+        { tool: "shell.exec", input: { command: "pwd" } },
+        "Need approval.",
+      );
+      writer.taskService.markWaitingApproval(threadId, { tool: "shell.exec", summary: "Need approval." });
+
+      const reader = createDefaultEntrypoint({
+        env: {
+          ADMIN_USER_ID: "wxid_admin",
+          WORKSPACE_ROOT: "/workspace",
+          LLM_BASE_URL: "http://localhost:11434/v1",
+          LLM_MODEL: "qwen2.5-coder",
+          LLM_API_KEY: "",
+          LLM_SUPPORTS_IMAGE_INPUT: "false",
+          DATABASE_PATH: dbPath,
+        },
+      });
+
+      await reader.app.resumeApproval(approvalId);
+
+      expect(reader.taskService.getPendingApproval(approvalId)?.status).toBe("approved");
+      expect(reader.taskService.getThread(threadId)?.status).toBe("done");
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a persisted approval after recreating the entrypoint", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "wechat-claw-entrypoint-"));
+    const dbPath = join(tempDir, "entrypoint.db");
+
+    try {
+      const writer = createDefaultEntrypoint({
+        env: {
+          ADMIN_USER_ID: "wxid_admin",
+          WORKSPACE_ROOT: "/workspace",
+          LLM_BASE_URL: "http://localhost:11434/v1",
+          LLM_MODEL: "qwen2.5-coder",
+          LLM_API_KEY: "",
+          LLM_SUPPORTS_IMAGE_INPUT: "false",
+          DATABASE_PATH: dbPath,
+        },
+      });
+
+      const { threadId } = writer.taskService.receiveMessage({
+        fromUserId: "wxid_admin",
+        text: "run dangerous command",
+      });
+      const { approvalId } = writer.taskService.createApprovalRequest(
+        threadId,
+        { tool: "shell.exec", input: { command: "rm -rf /tmp/demo" } },
+        "Need approval.",
+      );
+      writer.taskService.markWaitingApproval(threadId, { tool: "shell.exec", summary: "Need approval." });
+
+      const reader = createDefaultEntrypoint({
+        env: {
+          ADMIN_USER_ID: "wxid_admin",
+          WORKSPACE_ROOT: "/workspace",
+          LLM_BASE_URL: "http://localhost:11434/v1",
+          LLM_MODEL: "qwen2.5-coder",
+          LLM_API_KEY: "",
+          LLM_SUPPORTS_IMAGE_INPUT: "false",
+          DATABASE_PATH: dbPath,
+        },
+      });
+
+      await reader.app.rejectApproval(approvalId, "too risky");
+
+      expect(reader.taskService.getPendingApproval(approvalId)?.status).toBe("rejected");
+      expect(reader.taskService.getThread(threadId)?.status).toBe("failed");
+      expect(reader.taskService.listEvents(threadId)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ kind: "approval.rejected", summary: "too risky" }),
+          expect.objectContaining({ kind: "thread.failed", summary: "too risky" }),
+        ]),
+      );
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("bootstrapApplication", () => {
