@@ -2,13 +2,15 @@
 
 Project: wechat_claw
 Branch: ralph/thread-attach-slice
-Status: Not started
+Status: Superseded
 
 ## User Stories
-- [ ] US-001 Route inbound messages to unfinished threads
-- [ ] US-002 Cover unfinished-thread reuse in TaskService
-- [ ] US-003 Verify SQLite-backed thread attachment behavior
-- [ ] US-004 Run slice verification suite
+- [x] US-001 Route inbound messages to unfinished threads
+- [x] US-002 Cover unfinished-thread reuse in TaskService
+- [x] US-003 Verify SQLite-backed thread attachment behavior
+- [x] US-004 Run slice verification suite
 
 ## Notes
-- Progress file initialized.
+- This archived run was never executed as its own branch milestone, but its acceptance criteria were later satisfied in repository history on `master`.
+- Verified by existing coverage in `tests/tasks/thread-router.test.ts`, `tests/tasks/service.test.ts`, and `tests/app/entrypoint.test.ts`.
+- Repository-level verification was refreshed on 2026-04-05 with `npm test` and `npx tsc --noEmit`.
