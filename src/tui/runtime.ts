@@ -338,3 +338,17 @@ export function createTuiRuntime(input: {
     applyInput,
   };
 }
+
+export function startTuiRuntime(
+  runtime: { app: TuiAppActions; taskService: TuiTaskService },
+  streams: { stdin?: TuiInputStream; stdout?: TuiOutputStream } = {},
+) {
+  const tuiRuntime = createTuiRuntime({
+    app: runtime.app,
+    taskService: runtime.taskService,
+    stdin: streams.stdin,
+    stdout: streams.stdout,
+  });
+
+  return tuiRuntime.start();
+}

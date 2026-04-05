@@ -1,5 +1,6 @@
 import { pathToFileURL } from "node:url";
 import { bootstrapApplication } from "./app/bootstrap.js";
+import { startTuiRuntime } from "./tui/runtime.js";
 
 type CliStream = {
   write(chunk: string): unknown;
@@ -11,7 +12,9 @@ type CliDeps = {
   env: Record<string, string | undefined>;
   stdout: CliStream;
   stderr: CliStream;
+  stdin: typeof process.stdin;
   bootstrapApplication: typeof bootstrapApplication;
+  startTuiRuntime: typeof startTuiRuntime;
 };
 
 function writeLine(stream: CliStream, line: string) {
@@ -19,10 +22,11 @@ function writeLine(stream: CliStream, line: string) {
 }
 
 function usage(stream: CliStream) {
-  writeLine(stream, "Usage: wechat-claw <message|approve|reject> ...");
+  writeLine(stream, "Usage: wechat-claw <message|approve|reject|tui> ...");
   writeLine(stream, "  message <text...>");
   writeLine(stream, "  approve <approvalId>");
   writeLine(stream, "  reject <approvalId> [reason...]");
+  writeLine(stream, "  tui");
 }
 
 function getThreadStatus(runtime: CliRuntime, approvalId: string) {
@@ -38,15 +42,27 @@ export async function runCli(argv: string[], deps: Partial<CliDeps> = {}) {
   const env = deps.env ?? process.env;
   const stdout = deps.stdout ?? process.stdout;
   const stderr = deps.stderr ?? process.stderr;
+  const stdin = deps.stdin ?? process.stdin;
   const runBootstrap = deps.bootstrapApplication ?? bootstrapApplication;
+  const runTui = deps.startTuiRuntime ?? startTuiRuntime;
   const [command, ...rest] = argv;
 
-  if (!command || !["message", "approve", "reject"].includes(command)) {
+  if (!command || !["message", "approve", "reject", "tui"].includes(command)) {
+    usage(stderr);
+    return 1;
+  }
+
+  if (command === "tui" && rest.length > 0) {
     usage(stderr);
     return 1;
   }
 
   const runtime = await runBootstrap({ env });
+
+  if (command === "tui") {
+    runTui(runtime, { stdin, stdout });
+    return 0;
+  }
 
   if (command === "message") {
     if (rest.length === 0) {

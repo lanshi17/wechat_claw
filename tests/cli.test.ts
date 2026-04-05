@@ -85,11 +85,65 @@ describe("runCli", () => {
     expect(write).toHaveBeenCalledWith(expect.stringContaining("Final thread status: failed"));
   });
 
+  it("bootstraps the app and starts the tui runtime", async () => {
+    const startTuiRuntime = vi.fn();
+    const bootstrapApplication = vi.fn().mockResolvedValue({
+      app: {
+        handleAdminMessage: vi.fn(),
+        resumeApproval: vi.fn(),
+        rejectApproval: vi.fn(),
+      },
+      taskService: {
+        listThreads: vi.fn().mockReturnValue([]),
+        listApprovals: vi.fn().mockReturnValue([]),
+        listEvents: vi.fn().mockReturnValue([]),
+      },
+      setCurrentMessage: vi.fn(),
+    });
+
+    const exitCode = await runCli(["tui"], {
+      env: { ADMIN_USER_ID: "wxid_admin" },
+      stdout: { write: vi.fn() },
+      stderr: { write: vi.fn() },
+      bootstrapApplication,
+      startTuiRuntime,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(bootstrapApplication).toHaveBeenCalledWith({ env: { ADMIN_USER_ID: "wxid_admin" } });
+    expect(startTuiRuntime).toHaveBeenCalledWith(
+      expect.objectContaining({
+        app: expect.any(Object),
+        taskService: expect.any(Object),
+      }),
+      expect.objectContaining({
+        stdin: process.stdin,
+        stdout: expect.any(Object),
+      }),
+    );
+  });
+
   it("prints usage for an unknown subcommand", async () => {
     const stdoutWrite = vi.fn();
     const stderrWrite = vi.fn();
 
     const exitCode = await runCli(["unknown"], {
+      env: { ADMIN_USER_ID: "wxid_admin" },
+      stdout: { write: stdoutWrite },
+      stderr: { write: stderrWrite },
+      bootstrapApplication: vi.fn(),
+    });
+
+    expect(exitCode).toBe(1);
+    expect(stderrWrite).toHaveBeenCalledWith(expect.stringContaining("Usage:"));
+    expect(stdoutWrite).not.toHaveBeenCalled();
+  });
+
+  it("prints usage for tui command arguments", async () => {
+    const stdoutWrite = vi.fn();
+    const stderrWrite = vi.fn();
+
+    const exitCode = await runCli(["tui", "extra"], {
       env: { ADMIN_USER_ID: "wxid_admin" },
       stdout: { write: stdoutWrite },
       stderr: { write: stderrWrite },
