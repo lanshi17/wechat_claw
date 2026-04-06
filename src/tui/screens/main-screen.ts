@@ -12,6 +12,8 @@ export type MainScreenState = {
   pendingApprovalCount: number;
   approvalItems: ApprovalQueueItem[];
   eventItems: EventLogItem[];
+  recoveryBannerText?: string;
+  recoveryHintText?: string;
   footerText: string;
   rejectPrompt?: RejectPromptState;
 };

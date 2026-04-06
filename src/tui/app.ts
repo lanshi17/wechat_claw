@@ -23,6 +23,34 @@ function buildApprovalLabel(approval: ApprovalQueueItem, isSelected: boolean) {
   return `${marker} [${approval.status}] ${approval.tool}${summary}`;
 }
 
+function buildRecoveryState(input: {
+  threads: Array<{ status: string }>;
+  pendingApprovalCount: number;
+}) {
+  if (input.pendingApprovalCount > 0) {
+    return {
+      recoveryBannerText: "Recovered pending approvals from the previous run.",
+      recoveryHintText: "Approve or reject a recovered approval to continue.",
+    };
+  }
+
+  if (input.threads.some((thread) => thread.status === "waiting_approval")) {
+    return {
+      recoveryBannerText: "Recovered waiting threads from the previous run.",
+      recoveryHintText: "Recovered context only. No approval action is available.",
+    };
+  }
+
+  if (input.threads.some((thread) => thread.status === "failed")) {
+    return {
+      recoveryBannerText: "Recovered failed threads from the previous run.",
+      recoveryHintText: "Recovered context only. No approval action is available.",
+    };
+  }
+
+  return undefined;
+}
+
 export function buildMainViewModel(input: {
   threads: Array<{ id: string; title: string; status: string; latestEventSummary?: string }>;
   approvals: ApprovalQueueItem[];
@@ -36,6 +64,11 @@ export function buildMainViewModel(input: {
   };
   const selectedApprovalIndex = clampSelection(interaction.selectedApprovalIndex, input.approvals);
   const selectedThreadId = input.approvals[selectedApprovalIndex]?.threadId;
+  const pendingApprovalCount = input.approvals.filter((approval) => approval.status === "pending").length;
+  const recoveryState = buildRecoveryState({
+    threads: input.threads,
+    pendingApprovalCount,
+  });
 
   const threadItems: ThreadItem[] = input.threads.map((thread) => ({
     id: thread.id,
@@ -55,15 +88,21 @@ export function buildMainViewModel(input: {
   const eventItems = selectedThreadId ? (input.eventsByThread?.[selectedThreadId] ?? []) : [];
   const footerText = interaction.mode === "reject_input"
     ? "Enter to reject, Esc to cancel, Backspace to edit"
-    : input.approvals.length === 0
+    : pendingApprovalCount > 0
+      ? "j/k or arrows move, a approves, r rejects, q quits"
+      : recoveryState
+        ? "Recovered context only. Press q to quit."
+        : input.approvals.length === 0
       ? "No approvals available. Press q to quit."
-      : "j/k or arrows move, a approves, r rejects, q quits";
+      : "No pending approvals. Press q to quit.";
 
   return {
     threadItems,
-    pendingApprovalCount: input.approvals.filter((approval) => approval.status === "pending").length,
+    pendingApprovalCount,
     approvalItems,
     eventItems,
+    recoveryBannerText: recoveryState?.recoveryBannerText,
+    recoveryHintText: recoveryState?.recoveryHintText,
     footerText,
     rejectPrompt: interaction.mode === "reject_input"
       ? {
@@ -76,6 +115,8 @@ export function buildMainViewModel(input: {
 
 export function renderMainScreen(state: MainScreenState) {
   const lines = [
+    ...(state.recoveryBannerText ? [state.recoveryBannerText] : []),
+    ...(state.recoveryHintText ? [state.recoveryHintText, ""] : []),
     "Threads",
     ...state.threadItems.map((thread) => `${thread.isSelected ? "*" : " "} ${thread.label}`),
     "",

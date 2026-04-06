@@ -91,4 +91,85 @@ describe("buildMainViewModel", () => {
     expect(rendered).toContain("Reject reason: needs review");
     expect(rendered).toContain("approval.requested: write config");
   });
+
+  it("renders explicit recovery messaging when pending approvals remain after restart", () => {
+    const model = buildMainViewModel({
+      threads: [
+        {
+          id: "t2",
+          title: "Write config",
+          status: "waiting_approval",
+          latestEventSummary: "approval requested",
+        },
+      ],
+      approvals: [
+        {
+          id: "a2",
+          threadId: "t2",
+          tool: "fs.write",
+          status: "pending",
+          summary: "write config",
+        },
+      ],
+      eventsByThread: {
+        t2: [
+          { id: "e3", summary: "approval.requested: write config" },
+        ],
+      },
+    });
+    const rendered = renderMainScreen(model);
+
+    expect(model.recoveryBannerText).toBe("Recovered pending approvals from the previous run.");
+    expect(model.recoveryHintText).toBe("Approve or reject a recovered approval to continue.");
+    expect(model.footerText).toContain("a approves");
+    expect(model.footerText).toContain("r rejects");
+    expect(rendered).toContain("Recovered pending approvals from the previous run.");
+    expect(rendered).toContain("Approve or reject a recovered approval to continue.");
+  });
+
+  it("renders informational recovery messaging when only waiting threads remain", () => {
+    const model = buildMainViewModel({
+      threads: [
+        {
+          id: "t2",
+          title: "Write config",
+          status: "waiting_approval",
+          latestEventSummary: "approval requested",
+        },
+      ],
+      approvals: [],
+    });
+    const rendered = renderMainScreen(model);
+
+    expect(model.recoveryBannerText).toBe("Recovered waiting threads from the previous run.");
+    expect(model.recoveryHintText).toBe("Recovered context only. No approval action is available.");
+    expect(model.footerText).toBe("Recovered context only. Press q to quit.");
+    expect(model.footerText).not.toContain("approves");
+    expect(model.footerText).not.toContain("rejects");
+    expect(rendered).toContain("Recovered waiting threads from the previous run.");
+    expect(rendered).toContain("Recovered context only. No approval action is available.");
+  });
+
+  it("renders informational recovery messaging when only failed threads remain", () => {
+    const model = buildMainViewModel({
+      threads: [
+        {
+          id: "t1",
+          title: "Run shell command",
+          status: "failed",
+          latestEventSummary: "approval rejected: too risky",
+        },
+      ],
+      approvals: [],
+    });
+    const rendered = renderMainScreen(model);
+
+    expect(model.recoveryBannerText).toBe("Recovered failed threads from the previous run.");
+    expect(model.recoveryHintText).toBe("Recovered context only. No approval action is available.");
+    expect(model.footerText).toBe("Recovered context only. Press q to quit.");
+    expect(model.footerText).not.toContain("approves");
+    expect(model.footerText).not.toContain("rejects");
+    expect(rendered).toContain("Recovered failed threads from the previous run.");
+    expect(rendered).toContain("Recovered context only. No approval action is available.");
+  });
 });
