@@ -1,17 +1,16 @@
 # Ralph Progress
 
 Project: wechat_claw
-Branch: ralph/tui-approval-interaction
+Branch: ralph/cold-start-recovery-view
 Status: Completed
 
 ## User Stories
-- [x] US-001 Expose live thread and approval queries for the TUI
-- [x] US-002 Drive approval actions through a testable TUI controller
-- [x] US-003 Render interactive approval state in the main TUI screen
-- [x] US-004 Start the interactive TUI from the CLI
-- [x] US-005 Verify and track the interactive TUI slice
+- [x] US-001 Project cold-start recovery messaging in the TUI screen
+- [x] US-002 Keep recovered thread context visible without a second selection mode
+- [x] US-003 Prove the recovery view survives SQLite-backed restart
+- [x] US-004 Verify and track the cold-start recovery slice
 
 ## Notes
-- Archived the previous `ralph/operator-approval-flow` run to `ralph/archive/2026-04-05-operator-approval-flow/` before reusing active Ralph tracking files.
-- Verified on 2026-04-05 with `npx vitest run tests/tasks/service.test.ts tests/tui/app.test.ts tests/tui/runtime.test.ts tests/cli.test.ts`, `npm test`, and `npx tsc --noEmit`.
-- A parallel verification attempt briefly produced SQLite readonly errors because `tests/tasks/service.test.ts` uses a fixed test database path; sequential verification passed cleanly and is the authoritative result.
+- Archived the previous `ralph/tui-approval-interaction` run to `ralph/archive/2026-04-06-tui-approval-interaction/` before reusing active Ralph tracking files.
+- Verified on 2026-04-06 with `npx vitest run tests/tui/app.test.ts tests/tui/runtime.test.ts tests/app/entrypoint.test.ts`, `npm test`, and `npx tsc --noEmit`.
+- The entrypoint recovery proof passed without an extra composition seam because the TUI runtime already exported the build path needed for restart verification.

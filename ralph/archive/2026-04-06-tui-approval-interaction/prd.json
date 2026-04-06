@@ -1,0 +1,82 @@
+{
+  "project": "wechat_claw",
+  "branchName": "ralph/tui-approval-interaction",
+  "description": "Add a minimal interactive operator TUI that can list live threads and approvals, navigate pending approvals, approve the selected item, reject with a typed reason, and start through the existing CLI.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Expose live thread and approval queries for the TUI",
+      "description": "As a TUI runtime, I want task-service list queries for threads and approvals so that the live operator screen can project repository-backed and in-memory state through a single boundary.",
+      "acceptanceCriteria": [
+        "TaskService exposes listThreads() with stable ordering",
+        "TaskService exposes listApprovals() with stable ordering and current statuses",
+        "The same query behavior works in repository-backed mode",
+        "Focused service tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Drive approval actions through a testable TUI controller",
+      "description": "As an operator, I want a small controller that owns selection and reject-input state so that approval actions can be exercised without wiring a full terminal into the tests.",
+      "acceptanceCriteria": [
+        "Selection moves up and down within list bounds",
+        "Approving dispatches resumeApproval(...) for the selected approval",
+        "Reject mode buffers typed input and dispatches rejectApproval(...) with the typed reason",
+        "Escape exits reject-input mode without dispatching",
+        "Focused runtime tests pass"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Render interactive approval state in the main TUI screen",
+      "description": "As an operator, I want the TUI render path to show the selected approval, reject prompt state, and selected-thread events so that I can act on approvals from a single plain-text screen.",
+      "acceptanceCriteria": [
+        "The selected approval is visibly marked in rendered state",
+        "Reject-input mode exposes the current prompt and buffer",
+        "The event list follows the selected approval's thread",
+        "Footer help reflects the current interaction mode",
+        "Focused TUI projection tests pass"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Start the interactive TUI from the CLI",
+      "description": "As a local operator, I want a tui command in the existing CLI so that I can launch the interactive approval console without using a separate entrypoint.",
+      "acceptanceCriteria": [
+        "runCli([\"tui\"]) bootstraps the composed app",
+        "The tui command starts the TUI runtime",
+        "Usage text includes tui",
+        "Existing message, approve, and reject commands still work unchanged",
+        "Focused CLI tests pass"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Verify and track the interactive TUI slice",
+      "description": "As a developer, I want the TUI slice verified and reflected in Ralph tracking so that the current branch status matches the implemented feature set and verification evidence.",
+      "acceptanceCriteria": [
+        "Focused verification for service, tui app, tui runtime, and cli passes",
+        "Full npm test passes",
+        "Typecheck passes",
+        "The prior Ralph run is archived before reusing the active tracking files",
+        "ralph/prd.json and ralph/progress.txt describe the TUI interaction slice"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

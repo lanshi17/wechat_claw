@@ -1,17 +1,17 @@
 {
   "project": "wechat_claw",
-  "branchName": "ralph/tui-approval-interaction",
-  "description": "Add a minimal interactive operator TUI that can list live threads and approvals, navigate pending approvals, approve the selected item, reject with a typed reason, and start through the existing CLI.",
+  "branchName": "ralph/cold-start-recovery-view",
+  "description": "Make `wechat-claw tui` expose an explicit SQLite-backed cold-start recovery scene after restart, while keeping operator actions limited to the existing approve and reject flows.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Expose live thread and approval queries for the TUI",
-      "description": "As a TUI runtime, I want task-service list queries for threads and approvals so that the live operator screen can project repository-backed and in-memory state through a single boundary.",
+      "title": "Project cold-start recovery messaging in the TUI screen",
+      "description": "As an operator, I want the main TUI screen to clearly tell me when durable work was recovered from a previous run so that I can distinguish actionable pending approvals from informational recovered context.",
       "acceptanceCriteria": [
-        "TaskService exposes listThreads() with stable ordering",
-        "TaskService exposes listApprovals() with stable ordering and current statuses",
-        "The same query behavior works in repository-backed mode",
-        "Focused service tests pass",
+        "Pending approvals render an explicit recovery banner and actionable recovery hint",
+        "Waiting-only and failed-only recovery scenes render informational messaging",
+        "Footer help exposes approve and reject only when a pending approval is actionable",
+        "TUI projection coverage passes in tests/tui/app.test.ts",
         "Typecheck passes"
       ],
       "priority": 1,
@@ -20,14 +20,14 @@
     },
     {
       "id": "US-002",
-      "title": "Drive approval actions through a testable TUI controller",
-      "description": "As an operator, I want a small controller that owns selection and reject-input state so that approval actions can be exercised without wiring a full terminal into the tests.",
+      "title": "Keep recovered thread context visible without a second selection mode",
+      "description": "As an operator, I want the event pane to keep showing the most useful recovered thread when no pending approval is selected so that restart recovery stays inspectable without adding thread navigation.",
       "acceptanceCriteria": [
-        "Selection moves up and down within list bounds",
-        "Approving dispatches resumeApproval(...) for the selected approval",
-        "Reject mode buffers typed input and dispatches rejectApproval(...) with the typed reason",
-        "Escape exits reject-input mode without dispatching",
-        "Focused runtime tests pass"
+        "Initial render uses the selected pending approval thread when one exists",
+        "Initial render falls back to the latest waiting_approval thread when approvals are absent",
+        "Initial render falls back to the latest failed thread when neither pending nor waiting threads exist",
+        "No new interaction mode or thread navigation is introduced",
+        "TUI runtime coverage passes in tests/tui/runtime.test.ts"
       ],
       "priority": 2,
       "passes": true,
@@ -35,14 +35,14 @@
     },
     {
       "id": "US-003",
-      "title": "Render interactive approval state in the main TUI screen",
-      "description": "As an operator, I want the TUI render path to show the selected approval, reject prompt state, and selected-thread events so that I can act on approvals from a single plain-text screen.",
+      "title": "Prove the recovery view survives SQLite-backed restart",
+      "description": "As a developer, I want entrypoint-level coverage for a recovered approval scene so that recreating the process against the same SQLite database yields the same recovery-oriented initial TUI state.",
       "acceptanceCriteria": [
-        "The selected approval is visibly marked in rendered state",
-        "Reject-input mode exposes the current prompt and buffer",
-        "The event list follows the selected approval's thread",
-        "Footer help reflects the current interaction mode",
-        "Focused TUI projection tests pass"
+        "A writer entrypoint can persist a recoverable approval scene into SQLite",
+        "A recreated reader entrypoint against the same database rebuilds recovery messaging",
+        "The recreated TUI state keeps the correct selected thread context and events",
+        "Entrypoint coverage passes in tests/app/entrypoint.test.ts",
+        "No boot-time auto-resume logic is introduced"
       ],
       "priority": 3,
       "passes": true,
@@ -50,31 +50,16 @@
     },
     {
       "id": "US-004",
-      "title": "Start the interactive TUI from the CLI",
-      "description": "As a local operator, I want a tui command in the existing CLI so that I can launch the interactive approval console without using a separate entrypoint.",
+      "title": "Verify and track the cold-start recovery slice",
+      "description": "As a developer, I want focused verification, full verification, and refreshed Ralph tracking so that the branch status matches the implemented cold-start recovery behavior.",
       "acceptanceCriteria": [
-        "runCli([\"tui\"]) bootstraps the composed app",
-        "The tui command starts the TUI runtime",
-        "Usage text includes tui",
-        "Existing message, approve, and reject commands still work unchanged",
-        "Focused CLI tests pass"
+        "Focused verification passes for tests/tui/app.test.ts, tests/tui/runtime.test.ts, and tests/app/entrypoint.test.ts",
+        "Full npm test passes",
+        "TypeScript typecheck passes",
+        "The previous Ralph run is archived before reusing active tracking files",
+        "ralph/prd.json and ralph/progress.txt describe the cold-start recovery slice"
       ],
       "priority": 4,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-005",
-      "title": "Verify and track the interactive TUI slice",
-      "description": "As a developer, I want the TUI slice verified and reflected in Ralph tracking so that the current branch status matches the implemented feature set and verification evidence.",
-      "acceptanceCriteria": [
-        "Focused verification for service, tui app, tui runtime, and cli passes",
-        "Full npm test passes",
-        "Typecheck passes",
-        "The prior Ralph run is archived before reusing the active tracking files",
-        "ralph/prd.json and ralph/progress.txt describe the TUI interaction slice"
-      ],
-      "priority": 5,
       "passes": true,
       "notes": ""
     }

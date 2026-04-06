@@ -1,0 +1,17 @@
+# Ralph Progress
+
+Project: wechat_claw
+Branch: ralph/tui-approval-interaction
+Status: Completed
+
+## User Stories
+- [x] US-001 Expose live thread and approval queries for the TUI
+- [x] US-002 Drive approval actions through a testable TUI controller
+- [x] US-003 Render interactive approval state in the main TUI screen
+- [x] US-004 Start the interactive TUI from the CLI
+- [x] US-005 Verify and track the interactive TUI slice
+
+## Notes
+- Archived the previous `ralph/operator-approval-flow` run to `ralph/archive/2026-04-05-operator-approval-flow/` before reusing active Ralph tracking files.
+- Verified on 2026-04-05 with `npx vitest run tests/tasks/service.test.ts tests/tui/app.test.ts tests/tui/runtime.test.ts tests/cli.test.ts`, `npm test`, and `npx tsc --noEmit`.
+- A parallel verification attempt briefly produced SQLite readonly errors because `tests/tasks/service.test.ts` uses a fixed test database path; sequential verification passed cleanly and is the authoritative result.
