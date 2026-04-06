@@ -1,0 +1,67 @@
+{
+  "project": "wechat_claw",
+  "branchName": "ralph/cold-start-recovery-view",
+  "description": "Make `wechat-claw tui` expose an explicit SQLite-backed cold-start recovery scene after restart, while keeping operator actions limited to the existing approve and reject flows.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Project cold-start recovery messaging in the TUI screen",
+      "description": "As an operator, I want the main TUI screen to clearly tell me when durable work was recovered from a previous run so that I can distinguish actionable pending approvals from informational recovered context.",
+      "acceptanceCriteria": [
+        "Pending approvals render an explicit recovery banner and actionable recovery hint",
+        "Waiting-only and failed-only recovery scenes render informational messaging",
+        "Footer help exposes approve and reject only when a pending approval is actionable",
+        "TUI projection coverage passes in tests/tui/app.test.ts",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Keep recovered thread context visible without a second selection mode",
+      "description": "As an operator, I want the event pane to keep showing the most useful recovered thread when no pending approval is selected so that restart recovery stays inspectable without adding thread navigation.",
+      "acceptanceCriteria": [
+        "Initial render uses the selected pending approval thread when one exists",
+        "Initial render falls back to the latest waiting_approval thread when approvals are absent",
+        "Initial render falls back to the latest failed thread when neither pending nor waiting threads exist",
+        "No new interaction mode or thread navigation is introduced",
+        "TUI runtime coverage passes in tests/tui/runtime.test.ts"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Prove the recovery view survives SQLite-backed restart",
+      "description": "As a developer, I want entrypoint-level coverage for a recovered approval scene so that recreating the process against the same SQLite database yields the same recovery-oriented initial TUI state.",
+      "acceptanceCriteria": [
+        "A writer entrypoint can persist a recoverable approval scene into SQLite",
+        "A recreated reader entrypoint against the same database rebuilds recovery messaging",
+        "The recreated TUI state keeps the correct selected thread context and events",
+        "Entrypoint coverage passes in tests/app/entrypoint.test.ts",
+        "No boot-time auto-resume logic is introduced"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Verify and track the cold-start recovery slice",
+      "description": "As a developer, I want focused verification, full verification, and refreshed Ralph tracking so that the branch status matches the implemented cold-start recovery behavior.",
+      "acceptanceCriteria": [
+        "Focused verification passes for tests/tui/app.test.ts, tests/tui/runtime.test.ts, and tests/app/entrypoint.test.ts",
+        "Full npm test passes",
+        "TypeScript typecheck passes",
+        "The previous Ralph run is archived before reusing active tracking files",
+        "ralph/prd.json and ralph/progress.txt describe the cold-start recovery slice"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

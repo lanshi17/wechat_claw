@@ -1,16 +1,16 @@
 # Ralph Progress
 
 Project: wechat_claw
-Branch: ralph/cold-start-recovery-view
+Branch: feat/start-mvp-smoke-entrypoint
 Status: Completed
 
 ## User Stories
-- [x] US-001 Project cold-start recovery messaging in the TUI screen
-- [x] US-002 Keep recovered thread context visible without a second selection mode
-- [x] US-003 Prove the recovery view survives SQLite-backed restart
-- [x] US-004 Verify and track the cold-start recovery slice
+- [x] US-001 Add a dedicated smoke runner for the approval loop
+- [x] US-002 Keep the operator CLI contract unchanged
+- [x] US-003 Repoint `start:mvp` and document the smoke contract
+- [x] US-004 Verify and track the dedicated smoke-entrypoint slice
 
 ## Notes
-- Archived the previous `ralph/tui-approval-interaction` run to `ralph/archive/2026-04-06-tui-approval-interaction/` before reusing active Ralph tracking files.
-- Verified on 2026-04-06 with `npx vitest run tests/tui/app.test.ts tests/tui/runtime.test.ts tests/app/entrypoint.test.ts`, `npm test`, and `npx tsc --noEmit`.
-- The entrypoint recovery proof passed without an extra composition seam because the TUI runtime already exported the build path needed for restart verification.
+- Archived the previous active cold-start recovery run to `ralph/archive/2026-04-06-cold-start-recovery-view/` before reusing active Ralph tracking files.
+- Verified on 2026-04-06 with `npx vitest run tests/smoke.test.ts tests/cli.test.ts`, `npm test`, `npx tsc --noEmit`, and `npm run build`.
+- Verified the runtime contract on 2026-04-06 with `npm run start:mvp`; the command now starts `dist/smoke.js` and fails on missing config instead of printing CLI usage.
