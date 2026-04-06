@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createDefaultEntrypoint } from "../../src/app/entrypoint.js";
 import { bootstrapApplication } from "../../src/app/bootstrap.js";
+import { createTuiRuntime } from "../../src/tui/runtime.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -427,6 +428,66 @@ describe("createDefaultEntrypoint", () => {
           expect.objectContaining({ kind: "thread.failed", summary: "too risky" }),
         ]),
       );
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("rebuilds the same cold-start recovery view after recreating the entrypoint", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "wechat-claw-entrypoint-"));
+    const dbPath = join(tempDir, "entrypoint.db");
+
+    try {
+      const writer = createDefaultEntrypoint({
+        env: {
+          ADMIN_USER_ID: "wxid_admin",
+          WORKSPACE_ROOT: "/workspace",
+          LLM_BASE_URL: "http://localhost:11434/v1",
+          LLM_MODEL: "qwen2.5-coder",
+          LLM_API_KEY: "",
+          LLM_SUPPORTS_IMAGE_INPUT: "false",
+          DATABASE_PATH: dbPath,
+        },
+      });
+
+      const { threadId } = writer.taskService.receiveMessage({
+        fromUserId: "wxid_admin",
+        text: "write config",
+      });
+      writer.taskService.createApprovalRequest(
+        threadId,
+        { tool: "fs.write", input: { path: "/workspace/app.json", contents: "{}" } },
+        "write config",
+      );
+      writer.taskService.markWaitingApproval(threadId, {
+        tool: "fs.write",
+        summary: "write config",
+      });
+
+      const reader = createDefaultEntrypoint({
+        env: {
+          ADMIN_USER_ID: "wxid_admin",
+          WORKSPACE_ROOT: "/workspace",
+          LLM_BASE_URL: "http://localhost:11434/v1",
+          LLM_MODEL: "qwen2.5-coder",
+          LLM_API_KEY: "",
+          LLM_SUPPORTS_IMAGE_INPUT: "false",
+          DATABASE_PATH: dbPath,
+        },
+      });
+      const runtime = createTuiRuntime({
+        app: reader.app,
+        taskService: reader.taskService,
+      });
+
+      const state = runtime.buildScreenState();
+
+      expect(state.recoveryBannerText).toBe("Recovered pending approvals from the previous run.");
+      expect(state.recoveryHintText).toBe("Approve or reject a recovered approval to continue.");
+      expect(state.threadItems.find((thread) => thread.id === threadId)?.isSelected).toBe(true);
+      expect(state.eventItems).toEqual([
+        { id: `${threadId}:approval.requested:0`, summary: "write config" },
+      ]);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
