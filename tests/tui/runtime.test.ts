@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createTuiController, decodeTerminalInput } from "../../src/tui/runtime.js";
+import { createTuiController, createTuiRuntime, decodeTerminalInput } from "../../src/tui/runtime.js";
 import type { ApprovalQueueItem } from "../../src/tui/widgets/approval-queue.js";
 
 function approvalItem(overrides: Partial<ApprovalQueueItem> = {}): ApprovalQueueItem {
@@ -138,5 +138,95 @@ describe("createTuiController", () => {
     expect(decodeTerminalInput("q", "reject_input")).toEqual([{ kind: "char", value: "q" }]);
     expect(decodeTerminalInput("\r", "reject_input")).toEqual([{ kind: "submit" }]);
     expect(decodeTerminalInput("\u001b", "reject_input")).toEqual([{ kind: "escape" }]);
+  });
+});
+
+describe("createTuiRuntime", () => {
+  it("uses the selected approval thread for the initial screen state when pending approvals exist", () => {
+    const runtime = createTuiRuntime({
+      app: {
+        resumeApproval: vi.fn(),
+        rejectApproval: vi.fn(),
+      },
+      taskService: {
+        listThreads: () => [
+          { id: "thread-1", fromUserId: "wxid_admin", title: "Failed thread", status: "failed" },
+          { id: "thread-2", fromUserId: "wxid_admin", title: "Waiting thread", status: "waiting_approval" },
+        ],
+        listApprovals: () => [
+          {
+            id: "approval-1",
+            threadId: "thread-2",
+            status: "pending",
+            action: { tool: "fs.write", input: {} },
+            reply: "write config",
+          },
+        ],
+        listEvents: (threadId: string) => threadId === "thread-2"
+          ? [{ kind: "approval.requested", summary: "approval.requested: write config" }]
+          : [{ kind: "thread.failed", summary: "thread.failed: too risky" }],
+      },
+    });
+
+    const state = runtime.buildScreenState();
+
+    expect(state.threadItems.find((thread) => thread.id === "thread-2")?.isSelected).toBe(true);
+    expect(state.eventItems).toEqual([
+      { id: "thread-2:approval.requested:0", summary: "approval.requested: write config" },
+    ]);
+  });
+
+  it("falls back to the latest waiting_approval thread when no approval is selected", () => {
+    const runtime = createTuiRuntime({
+      app: {
+        resumeApproval: vi.fn(),
+        rejectApproval: vi.fn(),
+      },
+      taskService: {
+        listThreads: () => [
+          { id: "thread-1", fromUserId: "wxid_admin", title: "Older waiting thread", status: "waiting_approval" },
+          { id: "thread-2", fromUserId: "wxid_admin", title: "Latest waiting thread", status: "waiting_approval" },
+        ],
+        listApprovals: () => [],
+        listEvents: (threadId: string) => [{
+          kind: "approval.requested",
+          summary: `approval.requested: ${threadId}`,
+        }],
+      },
+    });
+
+    const state = runtime.buildScreenState();
+
+    expect(state.threadItems.find((thread) => thread.id === "thread-2")?.isSelected).toBe(true);
+    expect(state.eventItems).toEqual([
+      { id: "thread-2:approval.requested:0", summary: "approval.requested: thread-2" },
+    ]);
+  });
+
+  it("falls back to the latest failed thread when neither approvals nor waiting threads exist", () => {
+    const runtime = createTuiRuntime({
+      app: {
+        resumeApproval: vi.fn(),
+        rejectApproval: vi.fn(),
+      },
+      taskService: {
+        listThreads: () => [
+          { id: "thread-1", fromUserId: "wxid_admin", title: "Older failed thread", status: "failed" },
+          { id: "thread-2", fromUserId: "wxid_admin", title: "Latest failed thread", status: "failed" },
+        ],
+        listApprovals: () => [],
+        listEvents: (threadId: string) => [{
+          kind: "thread.failed",
+          summary: `thread.failed: ${threadId}`,
+        }],
+      },
+    });
+
+    const state = runtime.buildScreenState();
+
+    expect(state.threadItems.find((thread) => thread.id === "thread-2")?.isSelected).toBe(true);
+    expect(state.eventItems).toEqual([
+      { id: "thread-2:thread.failed:0", summary: "thread.failed: thread-2" },
+    ]);
   });
 });

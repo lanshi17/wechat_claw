@@ -55,6 +55,7 @@ export function buildMainViewModel(input: {
   threads: Array<{ id: string; title: string; status: string; latestEventSummary?: string }>;
   approvals: ApprovalQueueItem[];
   eventsByThread?: Record<string, EventLogItem[]>;
+  selectedThreadId?: string;
   interaction?: InteractionState;
 }): MainScreenState {
   const interaction = input.interaction ?? {
@@ -63,7 +64,7 @@ export function buildMainViewModel(input: {
     rejectReason: "",
   };
   const selectedApprovalIndex = clampSelection(interaction.selectedApprovalIndex, input.approvals);
-  const selectedThreadId = input.approvals[selectedApprovalIndex]?.threadId;
+  const selectedThreadId = input.selectedThreadId ?? input.approvals[selectedApprovalIndex]?.threadId;
   const pendingApprovalCount = input.approvals.filter((approval) => approval.status === "pending").length;
   const recoveryState = buildRecoveryState({
     threads: input.threads,

@@ -90,6 +90,33 @@ function buildApprovalItems(approvals: TuiApproval[]): ApprovalQueueItem[] {
   }));
 }
 
+function findLatestThreadId(
+  threads: TuiThread[],
+  status: "waiting_approval" | "failed",
+) {
+  for (let index = threads.length - 1; index >= 0; index -= 1) {
+    if (threads[index]?.status === status) {
+      return threads[index].id;
+    }
+  }
+
+  return undefined;
+}
+
+function findSelectedThreadId(input: {
+  threads: TuiThread[];
+  approvals: ApprovalQueueItem[];
+  selectedApprovalIndex: number;
+}) {
+  const selectedApproval = input.approvals[clampSelection(input.selectedApprovalIndex, input.approvals)];
+  if (selectedApproval?.status === "pending") {
+    return selectedApproval.threadId;
+  }
+
+  return findLatestThreadId(input.threads, "waiting_approval")
+    ?? findLatestThreadId(input.threads, "failed");
+}
+
 export function decodeTerminalInput(input: Buffer | string, mode: TuiMode = "browse"): TuiInput[] {
   const chunk = typeof input === "string" ? input : input.toString("utf8");
 
@@ -258,8 +285,11 @@ export function createTuiRuntime(input: {
   const buildScreenState = (): MainScreenState => {
     const threads = input.taskService.listThreads();
     const approvals = buildApprovalItems(input.taskService.listApprovals());
-    const selectedApprovalIndex = clampSelection(controller.getState().selectedApprovalIndex, approvals);
-    const selectedThreadId = approvals[selectedApprovalIndex]?.threadId;
+    const selectedThreadId = findSelectedThreadId({
+      threads,
+      approvals,
+      selectedApprovalIndex: controller.getState().selectedApprovalIndex,
+    });
     const eventsByThread: Record<string, EventLogItem[]> = {};
 
     if (selectedThreadId) {
@@ -281,6 +311,7 @@ export function createTuiRuntime(input: {
       }),
       approvals,
       eventsByThread,
+      selectedThreadId,
       interaction: controller.getState(),
     });
   };
