@@ -2,7 +2,10 @@
 
 ## Active Plans
 
-- None. As of 2026-04-06, there are no incomplete plans in this repository.
+- `2026-04-06-start-mvp-smoke-entrypoint-design.md`
+- `2026-04-06-start-mvp-smoke-entrypoint.md`
+
+These stay active until the smoke entrypoint slice is fully verified and archived.
 
 ## Archive
 

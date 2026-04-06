@@ -22,8 +22,8 @@ This repository focuses on a small but complete MVP loop:
 The repository already has a runnable smoke path, but the default entrypoint is still an implementation slice aimed at converging on the MVP rather than a full product entrypoint.
 
 - 已有基础模块与测试：agent、app、approval、store、tasks、tools、TUI、WeChat gateway / Core modules and tests already exist across agent, app, approval, store, tasks, tools, TUI, and the WeChat gateway
-- `start:mvp` 会构建项目并运行 `dist/cli.js` / `start:mvp` builds the project and runs `dist/cli.js`
-- 当前 smoke 流程会演示一次真实 provider 驱动的审批暂停/恢复闭环：管理员消息 → 调用已配置的 OpenAI-compatible provider 生成动作计划 → provider 返回需要审批的动作时创建审批 → CLI 批准 → 恢复执行 → 线程完成 / The current smoke flow demonstrates a real-provider-backed approval pause/resume loop: admin message → call the configured OpenAI-compatible provider for an action plan → create an approval when the provider returns an approval-required action → approval grant in the CLI → resumed execution → thread completion
+- `start:mvp` 会构建项目并运行专用 smoke 入口 `dist/smoke.js` / `start:mvp` builds the project and runs the dedicated smoke entrypoint at `dist/smoke.js`
+- 当前 smoke 流程会演示一次真实 provider 驱动的审批暂停/恢复闭环：管理员消息进入 gateway → 调用已配置的 OpenAI-compatible provider 生成动作计划 → provider 返回需要审批的动作时创建审批 → smoke runner 自动批准并恢复执行 → 线程完成 / The current smoke flow demonstrates a real-provider-backed approval pause/resume loop: an admin message enters through the gateway → the configured OpenAI-compatible provider produces an action plan → a pending approval is created when the provider returns an approval-required action → the smoke runner auto-approves and resumes it → the thread completes
 - 线程和审批会写入 SQLite，未完成线程会按来源用户复用 / Threads and approvals are stored in SQLite, and unfinished threads are reused for the same source user
 
 ## 快速开始 / Quick Start
@@ -75,11 +75,11 @@ This command currently does the following:
 - 构建 TypeScript 输出到 `dist/` / Build the TypeScript output into `dist/`
 - 加载环境变量并初始化应用 / Load environment variables and bootstrap the app
 - 初始化 SQLite 数据库并自动应用 migration / Initialize the SQLite database and apply migrations automatically
-- 模拟一条管理员消息进入应用 / Simulate an admin message entering the app
+- 通过专用 smoke runner 发送一条固定的可信管理员消息到 gateway / Send one fixed trusted-admin message through the gateway via the dedicated smoke runner
 - 调用已配置的 OpenAI-compatible provider 生成回复与动作计划 / Call the configured OpenAI-compatible provider for the reply and action plan
-- 当 provider 返回需要审批的动作时创建审批 / Create an approval when the provider returns an approval-required action
-- 打印审批 ID，随后在 CLI 中标记批准并恢复执行 / Print the approval ID, then mark it approved and resume execution in the CLI
-- 打印最终线程状态 / Print the final thread status
+- 当 provider 返回需要审批的动作时创建审批，并按本次运行新产生的审批 ID 识别该审批 / Create an approval when the provider returns an approval-required action, then detect the approval created by this run by ID diff
+- 自动恢复该审批并打印审批 ID 与最终线程状态 / Automatically resume that approval and print the approval ID and final thread status
+- 在缺少配置、provider 不可达、或未产生新审批时以非零状态退出 / Exit non-zero when config is missing, the provider is unreachable, or no new approval is created
 
 ### 5) 使用真实 provider / Use a real provider
 
@@ -92,9 +92,9 @@ This command currently does the following:
 Before running, make sure that:
 
 - `LLM_BASE_URL` 指向可访问的 OpenAI-compatible API base URL / `LLM_BASE_URL` points to a reachable OpenAI-compatible API base URL
-- CLI 会向 `LLM_BASE_URL + /chat/completions` 发送 `POST` 请求 / The CLI sends a `POST` request to `LLM_BASE_URL + /chat/completions`
+- 默认 provider 路径会向 `LLM_BASE_URL + /chat/completions` 发送 `POST` 请求 / The default provider path sends a `POST` request to `LLM_BASE_URL + /chat/completions`
 - 响应体需要提供 `choices[0].message.content` / The response body must provide `choices[0].message.content`
-- 当 `content` 是 JSON 时，CLI 会尝试按 `{ reply, actions }` 解析它 / When `content` is JSON, the CLI attempts to parse it as `{ reply, actions }`
+- 当 `content` 是 JSON 时，运行时会尝试按 `{ reply, actions }` 解析它 / When `content` is JSON, the runtime attempts to parse it as `{ reply, actions }`
 
 要触发当前 smoke MVP 的审批断言，provider 返回内容需要兼容下面的形态：
 
@@ -104,9 +104,9 @@ To trigger the current smoke MVP approval assertion, the provider response conte
 {"reply":"Need approval","actions":[{"tool":"shell.exec","input":{"command":"pwd"}}]}
 ```
 
-如果 provider 只返回纯文本，CLI 仍会把它当作回复处理，但可能不会创建审批，当前 smoke 断言也会失败。
+如果 provider 只返回纯文本，运行时仍会把它当作回复处理，但可能不会创建审批，当前 smoke 断言也会失败并返回非零退出码。
 
-If the provider only returns plain text, the CLI still treats it as a reply, but it may not create an approval and the current smoke assertion can fail.
+If the provider only returns plain text, the runtime still treats it as a reply, but it may not create an approval and the current smoke assertion fails with a non-zero exit code.
 
 ## 环境变量 / Environment Variables
 
@@ -147,9 +147,9 @@ pnpm typecheck
 pnpm start:mvp
 ```
 
-`start:mvp` 当前会在一次命令里演示“真实 provider 规划 -> 审批请求 -> 批准 -> 恢复执行”的 smoke 流程。
+`start:mvp` 当前会在一次命令里演示“真实 provider 规划 -> 审批请求 -> 自动批准 -> 恢复执行”的 smoke 流程。
 
-`start:mvp` currently demonstrates a single-command smoke flow driven by a real OpenAI-compatible provider: planning -> request approval -> approve -> resume execution.
+`start:mvp` currently demonstrates a single-command smoke flow driven by a real OpenAI-compatible provider: planning -> request approval -> auto-approve -> resume execution.
 
 等价的 npm 方式：
 
@@ -199,7 +199,7 @@ The target MVP is designed to support:
 
 Current root-repo limitations:
 
-- `start:mvp` 依赖可访问的 OpenAI-compatible endpoint，以及能返回兼容 `choices[0].message.content` 形态的响应 / `start:mvp` depends on a reachable OpenAI-compatible endpoint and a response shape compatible with `choices[0].message.content`
+- `start:mvp` 依赖可访问的 OpenAI-compatible endpoint，以及能返回兼容 `choices[0].message.content` 形态且能触发审批动作的响应 / `start:mvp` depends on a reachable OpenAI-compatible endpoint and a response shape compatible with `choices[0].message.content` that also triggers an approval-required action
 - README 当前以测试与类型检查为主，而不是以完整运行流程为主 / This README still focuses on tests and typecheck rather than a fully supported runtime flow.
 - 项目仍处于 MVP 收敛阶段，部分能力仍以设计文档和渐进实现为准 / The project is still converging on the MVP, so some behavior is defined by design docs and incremental implementation work.
 
