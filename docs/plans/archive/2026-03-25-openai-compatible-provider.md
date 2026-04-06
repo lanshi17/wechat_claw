@@ -218,7 +218,7 @@ git commit -m "refactor: unify provider wiring around openai-compatible config"
 **Files:**
 - Modify: `README.md`
 - Modify: `.env.example`
-- Reference: `docs/plans/2026-03-25-openai-compatible-provider-design.md`
+- Reference: `docs/plans/archive/2026-03-25-openai-compatible-provider-design.md`
 
 **Step 1: Write the failing doc expectation**
 

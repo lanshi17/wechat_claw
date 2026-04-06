@@ -1,5 +1,7 @@
 # Cold-Start Recovery View Implementation Plan
 
+> **Status:** Implemented in repository history. Repository-level verification was refreshed on 2026-04-06 with `npm test`, `npx tsc --noEmit`, and `npm run build`.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Make `wechat-claw tui` show an explicit SQLite-backed cold-start recovery scene after restart, while keeping operator actions limited to the existing approve and reject flows.

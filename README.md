@@ -217,9 +217,10 @@ Planned next steps include:
 
 ## 相关设计文档 / Related Docs
 
-- `docs/plans/2026-03-24-wechat-agent-mvp-design.md`
-- `docs/plans/2026-03-24-wechat-agent-mvp.md`
+- `docs/plans/README.md`
+- `docs/plans/archive/2026-03-24-wechat-agent-mvp-design.md`
+- `docs/plans/archive/2026-03-24-wechat-agent-mvp.md`
 
-如果你要继续实现 MVP，建议先阅读上述设计与实现计划文档。
+当前没有未完成计划；已完成计划已归档到 `docs/plans/archive/`。
 
-If you want to keep building the MVP, start with the design and implementation plan documents above.
+There are currently no incomplete plans. Completed plans are archived in `docs/plans/archive/`.
