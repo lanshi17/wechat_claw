@@ -139,6 +139,22 @@ describe("runCli", () => {
     expect(stdoutWrite).not.toHaveBeenCalled();
   });
 
+  it("prints usage when no subcommand is provided", async () => {
+    const stdoutWrite = vi.fn();
+    const stderrWrite = vi.fn();
+
+    const exitCode = await runCli([], {
+      env: { ADMIN_USER_ID: "wxid_admin" },
+      stdout: { write: stdoutWrite },
+      stderr: { write: stderrWrite },
+      bootstrapApplication: vi.fn(),
+    });
+
+    expect(exitCode).toBe(1);
+    expect(stderrWrite).toHaveBeenCalledWith(expect.stringContaining("Usage:"));
+    expect(stdoutWrite).not.toHaveBeenCalled();
+  });
+
   it("prints usage for tui command arguments", async () => {
     const stdoutWrite = vi.fn();
     const stderrWrite = vi.fn();

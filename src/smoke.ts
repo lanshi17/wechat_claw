@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 import { bootstrapApplication } from "./app/bootstrap.js";
 
 type SmokeStream = {
@@ -79,4 +80,21 @@ export async function runMvpSmoke(deps: Partial<SmokeDeps> = {}) {
 
   writeLine(stdout, `Final thread status: ${thread.status}`);
   return 0;
+}
+
+export async function main() {
+  try {
+    process.exitCode = await runMvpSmoke();
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Smoke run failed:", error.message);
+    } else {
+      console.error("Smoke run failed:", String(error));
+    }
+    process.exitCode = 1;
+  }
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  void main();
 }
