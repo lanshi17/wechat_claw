@@ -176,6 +176,35 @@ describe("createTuiRuntime", () => {
     ]);
   });
 
+  it("keeps a recovered approval actionable after a restart-shaped snapshot", async () => {
+    const resumeApproval = vi.fn();
+    const runtime = createTuiRuntime({
+      app: {
+        resumeApproval,
+        rejectApproval: vi.fn(),
+      },
+      taskService: {
+        listThreads: () => [
+          { id: "thread-2", fromUserId: "wxid_admin", title: "Waiting thread", status: "waiting_approval" },
+        ],
+        listApprovals: () => [
+          {
+            id: "approval-1",
+            threadId: "thread-2",
+            status: "pending",
+            action: { tool: "fs.write", input: {} },
+            reply: "write config",
+          },
+        ],
+        listEvents: () => [{ kind: "approval.requested", summary: "approval.requested: write config" }],
+      },
+    });
+
+    await runtime.applyInput({ kind: "approve" });
+
+    expect(resumeApproval).toHaveBeenCalledWith("approval-1");
+  });
+
   it("falls back to the latest waiting_approval thread when no approval is selected", () => {
     const runtime = createTuiRuntime({
       app: {

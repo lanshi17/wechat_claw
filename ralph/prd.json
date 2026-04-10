@@ -1,18 +1,17 @@
 {
   "project": "wechat_claw",
-  "branchName": "feat/start-mvp-smoke-entrypoint",
-  "description": "Make `npm run start:mvp` run a dedicated smoke entrypoint that boots the composed app, simulates one trusted-admin message, auto-resumes the newly created approval, and reports the final thread status without changing the reusable CLI contract.",
+  "branchName": "deliverable-internal-mvp",
+  "description": "Productize the current smoke-driven WeChat Claw slice into a directly deliverable single-machine internal MVP with a real runtime entrypoint, classified startup diagnostics, restart-safe approval recovery, handoff-grade docs, and refreshed verification coverage.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Add a dedicated smoke runner for the approval loop",
-      "description": "As a developer, I want a dedicated `runMvpSmoke(...)` entrypoint so that the repository has a deterministic one-command smoke path that follows the real bootstrap, gateway, and task-service composition.",
+      "title": "Add a real long-running runtime entrypoint",
+      "description": "As an internal operator, I want a real `start:wechat` runtime entrypoint so that I can launch the WeChat/TUI runtime directly instead of routing through the smoke verifier.",
       "acceptanceCriteria": [
-        "`src/smoke.ts` exports `runMvpSmoke(...)` with injectable bootstrap and streams",
-        "The smoke runner snapshots existing approval IDs before sending the scripted inbound message",
-        "The smoke runner detects the new pending approval from the current run, resumes it, and prints the final thread status",
-        "The smoke runner exits non-zero when no new pending approval is created or no final thread status can be resolved",
-        "Focused smoke coverage passes in `tests/smoke.test.ts`"
+        "`src/main-entrypoint.ts` exports `runMainEntrypoint(...)` and a `main()` wrapper",
+        "The runtime bootstraps the app, awaits `runtime.start()`, and then launches the TUI",
+        "`package.json` exposes `npm run start:wechat` that builds and runs `dist/main-entrypoint.js`",
+        "Focused entrypoint coverage passes in `tests/app/entrypoint.test.ts`"
       ],
       "priority": 1,
       "passes": true,
@@ -20,13 +19,13 @@
     },
     {
       "id": "US-002",
-      "title": "Keep the operator CLI contract unchanged",
-      "description": "As a local operator, I want the existing CLI command surface to keep its current behavior so that adding the smoke entrypoint does not break reusable `message`, `approve`, `reject`, or `tui` flows.",
+      "title": "Classify startup failures with actionable diagnostics",
+      "description": "As an operator, I want startup failures categorized by source so that missing config, provider issues, database problems, and gateway issues fail clearly instead of crashing opaquely.",
       "acceptanceCriteria": [
-        "`src/cli.ts` remains unchanged by the smoke-entrypoint slice",
-        "CLI still prints usage for missing or unknown subcommands",
-        "The smoke file owns its own `main()` wrapper instead of routing through the CLI",
-        "CLI regression coverage passes in `tests/cli.test.ts`"
+        "`describeConfigError(...)` summarizes missing required config in stable order",
+        "`bootstrapApplication(...)` rethrows typed startup failures with categories including `config`, `provider`, `database`, and `gateway`",
+        "Both smoke and real runtime entrypoints print readable startup failure messages without noisy stacks",
+        "Focused coverage passes in `tests/shared/config.test.ts`, `tests/app/bootstrap.test.ts`, `tests/app/entrypoint.test.ts`, and `tests/smoke.test.ts`"
       ],
       "priority": 2,
       "passes": true,
@@ -34,13 +33,12 @@
     },
     {
       "id": "US-003",
-      "title": "Repoint `start:mvp` and document the smoke contract",
-      "description": "As a developer, I want `start:mvp` and the repository docs to describe the real smoke entrypoint so that the documented startup behavior matches what the command actually does.",
+      "title": "Keep pending approvals actionable after restart",
+      "description": "As an operator, I want pending approvals to survive restart and still be actionable from the real runtime path so that restarts do not lose work in progress.",
       "acceptanceCriteria": [
-        "`package.json` runs `node dist/smoke.js` for `start:mvp`",
-        "`README.md` describes the dedicated smoke runner and its success and failure contract",
-        "`docs/plans/README.md` keeps the active design and implementation plan visible during the slice",
-        "`npm run start:mvp` no longer prints CLI usage on the default path"
+        "A persisted pending approval remains visible to the task service after `runMainEntrypoint(...)` restarts the runtime",
+        "The TUI still selects the recovered approval thread and can approve the recovered approval from a restart-shaped snapshot",
+        "Recovery behavior is verified in `tests/app/entrypoint.test.ts` and `tests/tui/runtime.test.ts`"
       ],
       "priority": 3,
       "passes": true,
@@ -48,16 +46,29 @@
     },
     {
       "id": "US-004",
-      "title": "Verify and track the dedicated smoke-entrypoint slice",
-      "description": "As a developer, I want focused verification, full verification, runtime contract validation, and refreshed Ralph tracking so that the branch state matches the implemented `start:mvp` behavior.",
+      "title": "Ship deliverable docs and configuration artifacts",
+      "description": "As an internal teammate, I want `.env.example` and the README to describe the smoke command, real runtime command, recovery expectations, and troubleshooting steps so that I can install and operate the system from docs alone.",
       "acceptanceCriteria": [
-        "Focused verification passes for `tests/smoke.test.ts` and `tests/cli.test.ts`",
-        "Full `npm test` passes",
-        "`npx tsc --noEmit` passes",
-        "`npm run build` passes",
-        "The previous active Ralph run is archived before reusing `ralph/prd.json` and `ralph/progress.txt`"
+        "`.env.example` contains exactly the currently supported runtime variables",
+        "`README.md` documents install, configure, smoke verification, real runtime startup, restart/recovery expectations, and troubleshooting",
+        "`docs/plans/README.md` points to the active deliverable-MVP design and implementation docs",
+        "Focused doc/runtime verification passes and both runtime commands fail clearly on missing config"
       ],
       "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Refresh verification and Ralph tracking for the deliverable MVP slice",
+      "description": "As a maintainer, I want focused verification, full repository verification, runtime contract checks, and updated Ralph tracking so the branch state matches the new deliverable MVP runtime contract.",
+      "acceptanceCriteria": [
+        "Focused verification passes for entrypoint, bootstrap, config, TUI, and smoke coverage",
+        "`npm test`, `npx tsc --noEmit`, and `npm run build` all pass",
+        "`npm run start:mvp` remains the smoke verifier and `npm run start:wechat` remains the real runtime path",
+        "`ralph/prd.json` and `ralph/progress.txt` describe the deliverable internal MVP slice and verification evidence"
+      ],
+      "priority": 5,
       "passes": true,
       "notes": ""
     }

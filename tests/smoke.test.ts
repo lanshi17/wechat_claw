@@ -49,6 +49,26 @@ describe("runMvpSmoke", () => {
     expect(stderr.write).not.toHaveBeenCalled();
   });
 
+  it("prints classified bootstrap failures clearly", async () => {
+    const stdout = { write: vi.fn() };
+    const stderr = { write: vi.fn() };
+
+    const exitCode = await runMvpSmoke({
+      env: { ADMIN_USER_ID: "wxid_admin" },
+      stdout,
+      stderr,
+      bootstrapApplication: vi.fn().mockRejectedValue({
+        category: "config",
+        message: "Missing required config: ADMIN_USER_ID",
+      }),
+    });
+
+    expect(exitCode).toBe(1);
+    expect(stderr.write).toHaveBeenCalledWith(
+      "Smoke bootstrap failed [config]: Missing required config: ADMIN_USER_ID\n",
+    );
+  });
+
   it("fails when no new pending approval is created", async () => {
     const stdout = { write: vi.fn() };
     const stderr = { write: vi.fn() };

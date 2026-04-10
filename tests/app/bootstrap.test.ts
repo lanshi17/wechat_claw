@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { createBootstrapConfig, bootstrapApplication } from "../../src/app/bootstrap.js";
 
+const validEnv = {
+  ADMIN_USER_ID: "wxid_admin",
+  WORKSPACE_ROOT: "/workspace",
+  LLM_BASE_URL: "http://localhost:11434/v1",
+  LLM_MODEL: "qwen2.5-coder",
+  LLM_API_KEY: "",
+  LLM_SUPPORTS_IMAGE_INPUT: "false",
+  DATABASE_PATH: ":memory:",
+};
+
+
 describe("createBootstrapConfig", () => {
   it("normalizes the MVP defaults", () => {
     const cfg = createBootstrapConfig({ workspaceRoot: "/tmp/demo" });
@@ -12,6 +23,25 @@ describe("createBootstrapConfig", () => {
 });
 
 describe("bootstrapApplication", () => {
+  it("classifies missing config as a startup config error", async () => {
+    await expect(bootstrapApplication({ env: {} })).rejects.toMatchObject({
+      category: "config",
+      message: expect.stringContaining("Missing required config:"),
+    });
+  });
+
+  it("classifies provider startup failures", async () => {
+    await expect(bootstrapApplication({
+      env: validEnv,
+      createDefaultEntrypoint: () => {
+        throw new Error("openai provider request failed: ECONNREFUSED");
+      },
+    })).rejects.toMatchObject({
+      category: "provider",
+      message: "openai provider request failed: ECONNREFUSED",
+    });
+  });
+
   it("composes entrypoint with bootstrap config to create startable runtime", async () => {
     const result = await bootstrapApplication({
       env: {

@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { loadConfig } from "../../src/shared/config.js";
+import { describeConfigError, loadConfig } from "../../src/shared/config.js";
+
+describe("describeConfigError", () => {
+  it("summarizes missing required env names in stable order", () => {
+    expect(describeConfigError({
+      issues: [
+        { path: ["ADMIN_USER_ID"] },
+        { path: ["DATABASE_PATH"] },
+      ],
+    } as never)).toContain("Missing required config: ADMIN_USER_ID, DATABASE_PATH");
+  });
+});
 
 describe("loadConfig", () => {
   describe("OpenAI-compatible environment contract", () => {

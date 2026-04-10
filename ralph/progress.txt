@@ -1,16 +1,18 @@
 # Ralph Progress
 
 Project: wechat_claw
-Branch: feat/start-mvp-smoke-entrypoint
+Branch: deliverable-internal-mvp
 Status: Completed
 
 ## User Stories
-- [x] US-001 Add a dedicated smoke runner for the approval loop
-- [x] US-002 Keep the operator CLI contract unchanged
-- [x] US-003 Repoint `start:mvp` and document the smoke contract
-- [x] US-004 Verify and track the dedicated smoke-entrypoint slice
+- [x] US-001 Add a real long-running runtime entrypoint
+- [x] US-002 Classify startup failures with actionable diagnostics
+- [x] US-003 Keep pending approvals actionable after restart
+- [x] US-004 Ship deliverable docs and configuration artifacts
+- [x] US-005 Refresh verification and Ralph tracking for the deliverable MVP slice
 
 ## Notes
-- Archived the previous active cold-start recovery run to `ralph/archive/2026-04-06-cold-start-recovery-view/` before reusing active Ralph tracking files.
-- Verified on 2026-04-06 with `npx vitest run tests/smoke.test.ts tests/cli.test.ts`, `npm test`, `npx tsc --noEmit`, and `npm run build`.
-- Verified the runtime contract on 2026-04-06 with `npm run start:mvp`; the command now starts `dist/smoke.js` and fails on missing config instead of printing CLI usage.
+- Verified focused coverage with `npx vitest run tests/app/entrypoint.test.ts tests/app/bootstrap.test.ts tests/shared/config.test.ts tests/tui/runtime.test.ts tests/smoke.test.ts`.
+- Verified full repository checks with `npm test`, `npx tsc --noEmit`, and `npm run build`.
+- Verified runtime command behavior with `npm run start:mvp` and `npm run start:wechat`; both commands now fail clearly on missing config, and `start:mvp` remains separate from the real runtime path.
+- Updated `.env.example`, `README.md`, and `docs/plans/README.md` for handoff-grade install/startup/recovery guidance.

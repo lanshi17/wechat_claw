@@ -36,6 +36,25 @@ function getNewPendingApproval(
   return approvals.find((approval) => approval.status === "pending" && !existingApprovalIds.has(approval.id));
 }
 
+function formatSmokeFailure(error: unknown) {
+  if (
+    typeof error === "object"
+    && error !== null
+    && "category" in error
+    && typeof error.category === "string"
+    && "message" in error
+    && typeof error.message === "string"
+  ) {
+    return `Smoke bootstrap failed [${error.category}]: ${error.message}`;
+  }
+
+  if (error instanceof Error) {
+    return `Smoke bootstrap failed: ${error.message}`;
+  }
+
+  return `Smoke bootstrap failed: ${String(error)}`;
+}
+
 export async function runMvpSmoke(deps: Partial<SmokeDeps> = {}) {
   const env = deps.env ?? process.env;
   const stdout = deps.stdout ?? process.stdout;
@@ -46,8 +65,7 @@ export async function runMvpSmoke(deps: Partial<SmokeDeps> = {}) {
   try {
     runtime = await runBootstrap({ env });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    writeLine(stderr, `Smoke bootstrap failed: ${message}`);
+    writeLine(stderr, formatSmokeFailure(error));
     return 1;
   }
 

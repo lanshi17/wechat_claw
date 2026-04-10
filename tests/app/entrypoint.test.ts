@@ -2,9 +2,118 @@ import { describe, expect, it, vi } from "vitest";
 import { createDefaultEntrypoint } from "../../src/app/entrypoint.js";
 import { bootstrapApplication } from "../../src/app/bootstrap.js";
 import { createTuiRuntime } from "../../src/tui/runtime.js";
+import { runMainEntrypoint } from "../../src/main-entrypoint.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+
+describe("runMainEntrypoint", () => {
+  it("prints classified startup failures to stderr", async () => {
+    const stderr = { write: vi.fn() };
+
+    const exitCode = await runMainEntrypoint({
+      stderr,
+      bootstrapApplication: vi.fn().mockRejectedValue({
+        category: "config",
+        message: "Missing required config: ADMIN_USER_ID",
+      }),
+    });
+
+    expect(exitCode).toBe(1);
+    expect(stderr.write).toHaveBeenCalledWith(
+      "Startup failed [config]: Missing required config: ADMIN_USER_ID\n",
+    );
+  });
+
+  it("starts the real runtime and launches the TUI", async () => {
+    const start = vi.fn().mockResolvedValue({});
+    const startTuiRuntime = vi.fn();
+
+    const exitCode = await runMainEntrypoint({
+      env: { ADMIN_USER_ID: "wxid_admin" },
+      stdout: { write: vi.fn() },
+      stderr: { write: vi.fn() },
+      bootstrapApplication: vi.fn().mockResolvedValue({
+        app: { resumeApproval: vi.fn(), rejectApproval: vi.fn() },
+        gateway: {},
+        taskService: { listThreads: vi.fn(), listApprovals: vi.fn(), listEvents: vi.fn() },
+        start,
+      }),
+      startTuiRuntime,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(startTuiRuntime).toHaveBeenCalledWith(
+      expect.objectContaining({ app: expect.any(Object), taskService: expect.any(Object) }),
+      expect.any(Object),
+    );
+  });
+
+  it("surfaces persisted pending approvals to the TUI after restart through the main runtime path", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "wechat-claw-main-entrypoint-"));
+    const dbPath = join(tempDir, "entrypoint.db");
+    const startTuiRuntime = vi.fn();
+
+    try {
+      const writer = createDefaultEntrypoint({
+        env: {
+          ADMIN_USER_ID: "wxid_admin",
+          WORKSPACE_ROOT: "/workspace",
+          LLM_BASE_URL: "http://localhost:11434/v1",
+          LLM_MODEL: "qwen2.5-coder",
+          LLM_API_KEY: "",
+          LLM_SUPPORTS_IMAGE_INPUT: "false",
+          DATABASE_PATH: dbPath,
+        },
+      });
+
+      const { threadId } = writer.taskService.receiveMessage({
+        fromUserId: "wxid_admin",
+        text: "write config",
+      });
+      const { approvalId } = writer.taskService.createApprovalRequest(
+        threadId,
+        { tool: "fs.write", input: { path: "/workspace/app.json", contents: "{}" } },
+        "write config",
+      );
+      writer.taskService.markWaitingApproval(threadId, {
+        tool: "fs.write",
+        summary: "write config",
+      });
+
+      const exitCode = await runMainEntrypoint({
+        env: {
+          ADMIN_USER_ID: "wxid_admin",
+          WORKSPACE_ROOT: "/workspace",
+          LLM_BASE_URL: "http://localhost:11434/v1",
+          LLM_MODEL: "qwen2.5-coder",
+          LLM_API_KEY: "",
+          LLM_SUPPORTS_IMAGE_INPUT: "false",
+          DATABASE_PATH: dbPath,
+        },
+        stdout: { write: vi.fn() },
+        stderr: { write: vi.fn() },
+        startTuiRuntime,
+      });
+
+      expect(exitCode).toBe(0);
+      expect(startTuiRuntime).toHaveBeenCalledTimes(1);
+      expect(startTuiRuntime.mock.calls[0]?.[0].taskService.listApprovals()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: approvalId,
+            threadId,
+            status: "pending",
+            reply: "write config",
+          }),
+        ]),
+      );
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+});
 
 describe("createDefaultEntrypoint", () => {
 

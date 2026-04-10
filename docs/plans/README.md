@@ -2,10 +2,10 @@
 
 ## Active Plans
 
-- `2026-04-06-start-mvp-smoke-entrypoint-design.md`
-- `2026-04-06-start-mvp-smoke-entrypoint.md`
+- `2026-04-09-deliverable-internal-mvp-design.md`
+- `2026-04-09-deliverable-internal-mvp.md`
 
-These stay active until the smoke entrypoint slice is fully verified and archived.
+These stay active until the deliverable internal MVP productization slice is fully verified and archived.
 
 ## Archive
 
