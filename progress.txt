@@ -1,0 +1,3 @@
+[2026-04-11] Task: project conventions alignment
+Status: created root directories, added tracking templates, updated README conventions note
+Next: apply the conventions incrementally to future repo changes

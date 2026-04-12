@@ -135,3 +135,10 @@ tests/
 - `docs/plans/README.md`
 - `docs/plans/2026-04-09-deliverable-internal-mvp-design.md`
 - `docs/plans/2026-04-09-deliverable-internal-mvp.md`
+
+## Project conventions
+
+- `AGENTS.md` is the source of project conventions for this repository.
+- Active docs live in `docs/`; completed or outdated docs move to `docs/archive/`.
+- Task-node progress updates go in `progress.txt`.
+- Debugging and iteration retrospectives go in `lesson.md`.
