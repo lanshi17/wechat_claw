@@ -83,6 +83,8 @@ export async function bootstrapApplication(input: {
       taskService: entrypoint.taskService,
       setCurrentMessage: entrypoint.setCurrentMessage,
       async start() {
+        const gw = entrypoint.gateway as { start?: () => void };
+        gw.start?.();
         return {
           app: entrypoint.app,
           gateway: entrypoint.gateway,

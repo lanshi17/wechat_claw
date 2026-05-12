@@ -1,6 +1,7 @@
 import { pathToFileURL } from "node:url";
 import { bootstrapApplication } from "./app/bootstrap.js";
 import { startTuiRuntime } from "./tui/runtime.js";
+import qrcode from "qrcode-terminal";
 
 type CliStream = {
   write(chunk: string): unknown;
@@ -22,11 +23,12 @@ function writeLine(stream: CliStream, line: string) {
 }
 
 function usage(stream: CliStream) {
-  writeLine(stream, "Usage: wechat-claw <message|approve|reject|tui> ...");
+  writeLine(stream, "Usage: wechat-claw <message|approve|reject|tui|login> ...");
   writeLine(stream, "  message <text...>");
   writeLine(stream, "  approve <approvalId>");
   writeLine(stream, "  reject <approvalId> [reason...]");
   writeLine(stream, "  tui");
+  writeLine(stream, "  login");
 }
 
 function getThreadStatus(runtime: CliRuntime, approvalId: string) {
@@ -47,7 +49,7 @@ export async function runCli(argv: string[], deps: Partial<CliDeps> = {}) {
   const runTui = deps.startTuiRuntime ?? startTuiRuntime;
   const [command, ...rest] = argv;
 
-  if (!command || !["message", "approve", "reject", "tui"].includes(command)) {
+  if (!command || !["message", "approve", "reject", "tui", "login"].includes(command)) {
     usage(stderr);
     return 1;
   }
@@ -55,6 +57,57 @@ export async function runCli(argv: string[], deps: Partial<CliDeps> = {}) {
   if (command === "tui" && rest.length > 0) {
     usage(stderr);
     return 1;
+  }
+
+  if (command === "login") {
+    const ILINK_BASE = "https://ilinkai.weixin.qq.com";
+    writeLine(stdout, "Requesting QR code from iLink...");
+
+    try {
+      const qrResp = await fetch(`${ILINK_BASE}/ilink/bot/get_bot_qrcode?bot_type=3`);
+      if (!qrResp.ok) {
+        writeLine(stderr, `Login failed: QR code request returned HTTP ${qrResp.status}`);
+        return 1;
+      }
+      const qrData = (await qrResp.json()) as { qrcode: string; qrcode_img_content?: string };
+      const scanUrl = qrData.qrcode_img_content ?? `${ILINK_BASE}/ilink/qrcode?qrcode=${qrData.qrcode}`;
+
+      writeLine(stdout, "");
+      qrcode.generate(scanUrl, { small: true }, (qr: string) => { stdout.write(qr); });
+      writeLine(stdout, "");
+      writeLine(stdout, `Scan URL: ${scanUrl}`);
+      writeLine(stdout, "Scan the QR code with WeChat. Waiting...");
+
+      let botToken: string | undefined;
+      let attempts = 0;
+      while (!botToken && attempts < 90) {
+        await new Promise((r) => setTimeout(r, 2000));
+        attempts++;
+        const statusResp = await fetch(`${ILINK_BASE}/ilink/bot/get_qrcode_status?qrcode=${qrData.qrcode}`);
+        if (!statusResp.ok) continue;
+        const statusData = (await statusResp.json()) as { status: string; bot_token?: string };
+        if (statusData.status === "confirmed" && statusData.bot_token) {
+          botToken = statusData.bot_token;
+        } else if (statusData.status !== "pending" && statusData.status !== "waiting_confirm") {
+          writeLine(stdout, `QR status: ${statusData.status}`);
+        }
+      }
+
+      if (!botToken) {
+        writeLine(stderr, "Login timed out. Please try again.");
+        return 1;
+      }
+
+      writeLine(stdout, "");
+      writeLine(stdout, "Login successful!");
+      writeLine(stdout, `Bot token: ${botToken}`);
+      writeLine(stdout, "Add this to your .env file:");
+      writeLine(stdout, `  ILINK_BOT_TOKEN=${botToken}`);
+      return 0;
+    } catch (err) {
+      writeLine(stderr, `Login error: ${err instanceof Error ? err.message : String(err)}`);
+      return 1;
+    }
   }
 
   const runtime = await runBootstrap({ env });

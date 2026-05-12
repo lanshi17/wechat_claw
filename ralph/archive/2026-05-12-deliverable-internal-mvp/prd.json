@@ -1,0 +1,76 @@
+{
+  "project": "wechat_claw",
+  "branchName": "deliverable-internal-mvp",
+  "description": "Productize the current smoke-driven WeChat Claw slice into a directly deliverable single-machine internal MVP with a real runtime entrypoint, classified startup diagnostics, restart-safe approval recovery, handoff-grade docs, and refreshed verification coverage.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add a real long-running runtime entrypoint",
+      "description": "As an internal operator, I want a real `start:wechat` runtime entrypoint so that I can launch the WeChat/TUI runtime directly instead of routing through the smoke verifier.",
+      "acceptanceCriteria": [
+        "`src/main-entrypoint.ts` exports `runMainEntrypoint(...)` and a `main()` wrapper",
+        "The runtime bootstraps the app, awaits `runtime.start()`, and then launches the TUI",
+        "`package.json` exposes `npm run start:wechat` that builds and runs `dist/main-entrypoint.js`",
+        "Focused entrypoint coverage passes in `tests/app/entrypoint.test.ts`"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Classify startup failures with actionable diagnostics",
+      "description": "As an operator, I want startup failures categorized by source so that missing config, provider issues, database problems, and gateway issues fail clearly instead of crashing opaquely.",
+      "acceptanceCriteria": [
+        "`describeConfigError(...)` summarizes missing required config in stable order",
+        "`bootstrapApplication(...)` rethrows typed startup failures with categories including `config`, `provider`, `database`, and `gateway`",
+        "Both smoke and real runtime entrypoints print readable startup failure messages without noisy stacks",
+        "Focused coverage passes in `tests/shared/config.test.ts`, `tests/app/bootstrap.test.ts`, `tests/app/entrypoint.test.ts`, and `tests/smoke.test.ts`"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Keep pending approvals actionable after restart",
+      "description": "As an operator, I want pending approvals to survive restart and still be actionable from the real runtime path so that restarts do not lose work in progress.",
+      "acceptanceCriteria": [
+        "A persisted pending approval remains visible to the task service after `runMainEntrypoint(...)` restarts the runtime",
+        "The TUI still selects the recovered approval thread and can approve the recovered approval from a restart-shaped snapshot",
+        "Recovery behavior is verified in `tests/app/entrypoint.test.ts` and `tests/tui/runtime.test.ts`"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Ship deliverable docs and configuration artifacts",
+      "description": "As an internal teammate, I want `.env.example` and the README to describe the smoke command, real runtime command, recovery expectations, and troubleshooting steps so that I can install and operate the system from docs alone.",
+      "acceptanceCriteria": [
+        "`.env.example` contains exactly the currently supported runtime variables",
+        "`README.md` documents install, configure, smoke verification, real runtime startup, restart/recovery expectations, and troubleshooting",
+        "`docs/plans/README.md` points to the active deliverable-MVP design and implementation docs",
+        "Focused doc/runtime verification passes and both runtime commands fail clearly on missing config"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Refresh verification and Ralph tracking for the deliverable MVP slice",
+      "description": "As a maintainer, I want focused verification, full repository verification, runtime contract checks, and updated Ralph tracking so the branch state matches the new deliverable MVP runtime contract.",
+      "acceptanceCriteria": [
+        "Focused verification passes for entrypoint, bootstrap, config, TUI, and smoke coverage",
+        "`npm test`, `npx tsc --noEmit`, and `npm run build` all pass",
+        "`npm run start:mvp` remains the smoke verifier and `npm run start:wechat` remains the real runtime path",
+        "`ralph/prd.json` and `ralph/progress.txt` describe the deliverable internal MVP slice and verification evidence"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

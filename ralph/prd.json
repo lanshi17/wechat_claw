@@ -1,76 +1,89 @@
 {
   "project": "wechat_claw",
-  "branchName": "deliverable-internal-mvp",
-  "description": "Productize the current smoke-driven WeChat Claw slice into a directly deliverable single-machine internal MVP with a real runtime entrypoint, classified startup diagnostics, restart-safe approval recovery, handoff-grade docs, and refreshed verification coverage.",
+  "branchName": "ralph/ilink-wechat-integration",
+  "description": "Integrate Tencent's official iLink Bot API so the agent receives real WeChat messages via long-polling and sends replies through the iLink protocol.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Add a real long-running runtime entrypoint",
-      "description": "As an internal operator, I want a real `start:wechat` runtime entrypoint so that I can launch the WeChat/TUI runtime directly instead of routing through the smoke verifier.",
+      "title": "Add iLink config to env schema and .env.example",
+      "description": "As an operator, I need to configure the iLink bot token so the runtime can authenticate with WeChat servers.",
       "acceptanceCriteria": [
-        "`src/main-entrypoint.ts` exports `runMainEntrypoint(...)` and a `main()` wrapper",
-        "The runtime bootstraps the app, awaits `runtime.start()`, and then launches the TUI",
-        "`package.json` exposes `npm run start:wechat` that builds and runs `dist/main-entrypoint.js`",
-        "Focused entrypoint coverage passes in `tests/app/entrypoint.test.ts`"
+        "Add ILINK_BOT_TOKEN (optional string) to src/shared/schema.ts",
+        "Update loadConfig in src/shared/config.ts to pass through ilinkBotToken",
+        "Add ILINK_BOT_TOKEN to .env.example with placeholder",
+        "Update .env with the new variable",
+        "Typecheck passes"
       ],
       "priority": 1,
       "passes": true,
-      "notes": ""
+      "notes": "Added ILINK_BOT_TOKEN to schema.ts, config.ts, .env.example, .env. All tests pass."
     },
     {
       "id": "US-002",
-      "title": "Classify startup failures with actionable diagnostics",
-      "description": "As an operator, I want startup failures categorized by source so that missing config, provider issues, database problems, and gateway issues fail clearly instead of crashing opaquely.",
+      "title": "Implement iLink HTTP API client",
+      "description": "As a developer, I need a typed HTTP client for the iLink Bot API so the gateway can poll for messages and send replies.",
       "acceptanceCriteria": [
-        "`describeConfigError(...)` summarizes missing required config in stable order",
-        "`bootstrapApplication(...)` rethrows typed startup failures with categories including `config`, `provider`, `database`, and `gateway`",
-        "Both smoke and real runtime entrypoints print readable startup failure messages without noisy stacks",
-        "Focused coverage passes in `tests/shared/config.test.ts`, `tests/app/bootstrap.test.ts`, `tests/app/entrypoint.test.ts`, and `tests/smoke.test.ts`"
+        "Create src/wechat/ilink-client.ts exporting createIlinkClient(botToken)",
+        "Client calls GET /ilink/bot/getupdates with long-polling (POST with get_updates_buf)",
+        "Client calls POST /ilink/bot/sendmessage with message payload including context_token",
+        "Requests include headers: AuthorizationType=ilink_bot_token, X-WECHAT-UIN (random), Authorization=Bearer token",
+        "Client handles HTTP errors with descriptive messages",
+        "Focused test in tests/wechat/ilink-client.test.ts uses injectable fetch mock",
+        "Typecheck passes"
       ],
       "priority": 2,
       "passes": true,
-      "notes": ""
+      "notes": "5 tests in ilink-client.test.ts. Auth headers, getUpdates, sendMessage, QR code, error handling."
     },
     {
       "id": "US-003",
-      "title": "Keep pending approvals actionable after restart",
-      "description": "As an operator, I want pending approvals to survive restart and still be actionable from the real runtime path so that restarts do not lose work in progress.",
+      "title": "Implement iLink-based real WeChat gateway",
+      "description": "As an operator, I want the runtime to receive real WeChat messages through iLink long-polling instead of simulated injection.",
       "acceptanceCriteria": [
-        "A persisted pending approval remains visible to the task service after `runMainEntrypoint(...)` restarts the runtime",
-        "The TUI still selects the recovered approval thread and can approve the recovered approval from a restart-shaped snapshot",
-        "Recovery behavior is verified in `tests/app/entrypoint.test.ts` and `tests/tui/runtime.test.ts`"
+        "Create src/wechat/ilink-gateway.ts exporting createIlinkWeChatGateway(deps)",
+        "Gateway starts a long-polling loop calling ilinkClient.getUpdates()",
+        "Inbound messages are parsed: extract from_user_id, text from item_list[0].text_item.text, context_token",
+        "Gateway calls onMessage callback with { fromUserId, text, contextToken } for each message",
+        "Gateway stores context_token per user in a Map for use by sendReply",
+        "Gateway stops polling when stop() is called",
+        "Focused test in tests/wechat/ilink-gateway.test.ts uses injectable ilink client mock",
+        "Typecheck passes"
       ],
       "priority": 3,
       "passes": true,
-      "notes": ""
+      "notes": "3 tests in ilink-gateway.test.ts. Long-polling loop, context_token per user, admin boundary check."
     },
     {
       "id": "US-004",
-      "title": "Ship deliverable docs and configuration artifacts",
-      "description": "As an internal teammate, I want `.env.example` and the README to describe the smoke command, real runtime command, recovery expectations, and troubleshooting steps so that I can install and operate the system from docs alone.",
+      "title": "Implement real sendReply via iLink",
+      "description": "As an operator, I want the agent's replies to be delivered to WeChat users through the iLink API instead of just being logged.",
       "acceptanceCriteria": [
-        "`.env.example` contains exactly the currently supported runtime variables",
-        "`README.md` documents install, configure, smoke verification, real runtime startup, restart/recovery expectations, and troubleshooting",
-        "`docs/plans/README.md` points to the active deliverable-MVP design and implementation docs",
-        "Focused doc/runtime verification passes and both runtime commands fail clearly on missing config"
+        "Modify createDefaultEntrypoint to create a sendReply that calls ilinkClient.sendMessage()",
+        "sendReply looks up the user's context_token from the gateway's token store",
+        "sendReply falls back to pino logging when bot token is not configured (no-op mode)",
+        "sendReply logs via pino at info level when messages are sent",
+        "Existing entrypoint tests continue to pass",
+        "Typecheck passes"
       ],
       "priority": 4,
       "passes": true,
-      "notes": ""
+      "notes": "sendReply uses ilink when token + context_token available, falls back to pino logging. Entrypoint creates ilink client conditionally."
     },
     {
       "id": "US-005",
-      "title": "Refresh verification and Ralph tracking for the deliverable MVP slice",
-      "description": "As a maintainer, I want focused verification, full repository verification, runtime contract checks, and updated Ralph tracking so the branch state matches the new deliverable MVP runtime contract.",
+      "title": "Wire iLink gateway into entrypoint, add QR login CLI, and verify",
+      "description": "As an operator, I want a QR login CLI command for initial setup and the runtime to auto-start iLink polling on launch.",
       "acceptanceCriteria": [
-        "Focused verification passes for entrypoint, bootstrap, config, TUI, and smoke coverage",
-        "`npm test`, `npx tsc --noEmit`, and `npm run build` all pass",
-        "`npm run start:mvp` remains the smoke verifier and `npm run start:wechat` remains the real runtime path",
-        "`ralph/prd.json` and `ralph/progress.txt` describe the deliverable internal MVP slice and verification evidence"
+        "Modify createDefaultEntrypoint to use iLink gateway when ILINK_BOT_TOKEN is set",
+        "When ILINK_BOT_TOKEN is absent, gateway falls back to simulated mode (existing behavior)",
+        "The bootstrap start() method begins the iLink polling loop",
+        "Add 'login' subcommand to src/cli.ts that: calls iLink QR endpoint, prints QR URL, polls status, saves token to .env",
+        "Full test suite passes: npm test, tsc --noEmit, npm run build",
+        "Typecheck passes"
       ],
       "priority": 5,
       "passes": true,
-      "notes": ""
+      "notes": "CLI 'login' command added. Bootstrap start() calls gateway.start(). 128 tests pass, typecheck clean, build succeeds."
     }
   ]
 }

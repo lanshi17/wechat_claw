@@ -60,5 +60,6 @@ export function loadConfig(env: Record<string, string | undefined>) {
       apiKey: parsed.LLM_API_KEY,
       supportsImageInput: parsed.LLM_SUPPORTS_IMAGE_INPUT === "true",
     },
+    ilinkBotToken: parsed.ILINK_BOT_TOKEN,
   };
 }

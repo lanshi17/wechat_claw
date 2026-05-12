@@ -1,0 +1,18 @@
+# Ralph Progress
+
+Project: wechat_claw
+Branch: deliverable-internal-mvp
+Status: Completed
+
+## User Stories
+- [x] US-001 Add a real long-running runtime entrypoint
+- [x] US-002 Classify startup failures with actionable diagnostics
+- [x] US-003 Keep pending approvals actionable after restart
+- [x] US-004 Ship deliverable docs and configuration artifacts
+- [x] US-005 Refresh verification and Ralph tracking for the deliverable MVP slice
+
+## Notes
+- Verified focused coverage with `npx vitest run tests/app/entrypoint.test.ts tests/app/bootstrap.test.ts tests/shared/config.test.ts tests/tui/runtime.test.ts tests/smoke.test.ts`.
+- Verified full repository checks with `npm test`, `npx tsc --noEmit`, and `npm run build`.
+- Verified runtime command behavior with `npm run start:mvp` and `npm run start:wechat`; both commands now fail clearly on missing config, and `start:mvp` remains separate from the real runtime path.
+- Updated `.env.example`, `README.md`, and `docs/plans/README.md` for handoff-grade install/startup/recovery guidance.

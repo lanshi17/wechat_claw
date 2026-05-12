@@ -8,6 +8,7 @@ export const envSchema = z.object({
   LLM_API_KEY: z.string().optional(),
   LLM_SUPPORTS_IMAGE_INPUT: z.enum(["true", "false"]).optional(),
   DATABASE_PATH: z.string().min(1),
+  ILINK_BOT_TOKEN: z.string().optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

@@ -1,0 +1,90 @@
+{
+  "project": "wechat_claw",
+  "branchName": "ralph/real-tool-runners",
+  "description": "Replace all stubbed tool runners with real implementations so the agent can actually execute shell commands, read/write files, fetch URLs, and send WeChat replies.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Implement real shell.exec runner with workspace containment",
+      "description": "As an operator, I want the agent to execute shell commands within the workspace so that LLM-planned actions actually run on the machine.",
+      "acceptanceCriteria": [
+        "Create src/tools/shell/real-runner.ts exporting createRealShellExec(workspaceRoot, timeoutMs)",
+        "Runner resolves relative paths against workspaceRoot",
+        "Runner rejects commands with absolute paths outside workspaceRoot",
+        "Runner enforces a configurable timeout (default 30s) and kills the process on timeout",
+        "Runner captures and returns { exitCode, stdout, stderr }",
+        "Runner sets cwd to workspaceRoot before executing",
+        "Focused test in tests/tools/shell-real-runner.test.ts uses injected child_process mock",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "4 tests pass in tests/tools/shell-real-runner.test.ts. Workspace containment, timeout, exit code capture all verified."
+    },
+    {
+      "id": "US-002",
+      "title": "Implement real fs.read runner with workspace boundary",
+      "description": "As an operator, I want the agent to read files within the workspace so that it can inspect configuration, logs, and output of previous commands.",
+      "acceptanceCriteria": [
+        "Create src/tools/fs/real-runner.ts exporting createRealFsRead(workspaceRoot)",
+        "Runner resolves relative paths against workspaceRoot and rejects escaping paths",
+        "Runner reads file content as UTF-8 and returns { path, content }",
+        "Runner throws descriptive error for missing files, directories, and permission denials",
+        "Focused test in tests/tools/fs-real-runner.test.ts uses temp directories",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "5 tests pass in tests/tools/fs-real-runner.test.ts. Workspace boundary, missing file, directory rejection all verified."
+    },
+    {
+      "id": "US-003",
+      "title": "Implement real fs.write runner with workspace boundary",
+      "description": "As an operator, I want the agent to write files within the workspace (gated by approval) so that it can save configuration, generate scripts, and persist output.",
+      "acceptanceCriteria": [
+        "Add createRealFsWrite(workspaceRoot) to src/tools/fs/real-runner.ts",
+        "Runner resolves paths against workspaceRoot and rejects escaping paths",
+        "Runner creates parent directories automatically (mkdir recursive)",
+        "Runner writes content as UTF-8 and returns { path, bytesWritten }",
+        "Focused test in tests/tools/fs-real-runner.test.ts covers write, overwrite, and boundary rejection",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "3 write tests pass. Workspace boundary, overwrite, auto-created parent directories all verified."
+    },
+    {
+      "id": "US-004",
+      "title": "Implement real web.fetch runner",
+      "description": "As an operator, I want the agent to fetch web content so that it can retrieve documentation, API responses, and reference material.",
+      "acceptanceCriteria": [
+        "Create src/tools/web/real-runner.ts exporting createRealWebFetch()",
+        "Runner performs HTTP GET with a configurable timeout (default 10s)",
+        "Runner returns { url, text } on success",
+        "Runner throws descriptive error for network failures and non-200 responses",
+        "Focused test in tests/tools/web-real-runner.test.ts uses an injectable fetch mock",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "4 tests pass in tests/tools/web-real-runner.test.ts. HTTP GET, timeout, error handling all verified."
+    },
+    {
+      "id": "US-005",
+      "title": "Wire real tool runners and sendReply into the entrypoint",
+      "description": "As an operator, I want all tool runners wired into the runtime and replies actually delivered so the agent is functional end-to-end.",
+      "acceptanceCriteria": [
+        "Replace stubShellExec and stubWebSearch in createDefaultEntrypoint with real runners from US-001 through US-004",
+        "Wire real fsRead, fsWrite, webFetch into tool registry",
+        "Implement wechat.reply runner that delegates to the sendReply callback",
+        "Wire wechat.reply into tool registry",
+        "Implement real sendReply that logs to pino (info level) with { toUserId, text }",
+        "Existing tests continue to pass: entrypoint tests, smoke tests, all unit tests",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "All 120 tests pass. sendReply logs via pino. All real runners wired. wechat.reply tool delegates to sendReply."
+    }
+  ]
+}

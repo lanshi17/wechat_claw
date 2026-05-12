@@ -1,3 +1,11 @@
 [2026-04-11] Task: project conventions alignment
 Status: created root directories, added tracking templates, updated README conventions note
 Next: apply the conventions incrementally to future repo changes
+
+[2026-05-12] Task: real tool runners (ralph/real-tool-runners)
+Status: replaced all stubbed tool runners with real implementations; shell.exec, fs.read, fs.write, web.fetch, wechat.reply all wired; sendReply logs via pino; 120 tests pass, typecheck clean, build succeeds
+Next: real WeChat transport, provider contract enforcement, richer TUI operator UX
+
+[2026-05-12] Task: iLink WeChat integration (ralph/ilink-wechat-integration)
+Status: implemented iLink HTTP client, real WeChat gateway with long-polling, QR login CLI, iLink-based sendReply with pino fallback; 128 tests pass, typecheck clean, build succeeds
+Next: obtain bot_token via QR login, then test real WeChat message flow

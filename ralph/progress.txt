@@ -1,18 +1,23 @@
 # Ralph Progress
 
 Project: wechat_claw
-Branch: deliverable-internal-mvp
+Branch: ralph/ilink-wechat-integration
 Status: Completed
 
 ## User Stories
-- [x] US-001 Add a real long-running runtime entrypoint
-- [x] US-002 Classify startup failures with actionable diagnostics
-- [x] US-003 Keep pending approvals actionable after restart
-- [x] US-004 Ship deliverable docs and configuration artifacts
-- [x] US-005 Refresh verification and Ralph tracking for the deliverable MVP slice
+- [x] US-001 Add iLink config to env schema and .env.example
+- [x] US-002 Implement iLink HTTP API client
+- [x] US-003 Implement iLink-based real WeChat gateway
+- [x] US-004 Implement real sendReply via iLink
+- [x] US-005 Wire iLink gateway into entrypoint, add QR login CLI, and verify
 
 ## Notes
-- Verified focused coverage with `npx vitest run tests/app/entrypoint.test.ts tests/app/bootstrap.test.ts tests/shared/config.test.ts tests/tui/runtime.test.ts tests/smoke.test.ts`.
-- Verified full repository checks with `npm test`, `npx tsc --noEmit`, and `npm run build`.
-- Verified runtime command behavior with `npm run start:mvp` and `npm run start:wechat`; both commands now fail clearly on missing config, and `start:mvp` remains separate from the real runtime path.
-- Updated `.env.example`, `README.md`, and `docs/plans/README.md` for handoff-grade install/startup/recovery guidance.
+- Integration target: Tencent iLink Bot API at ilinkai.weixin.qq.com
+- Uses official HTTP/JSON protocol, no external gateway dependency
+- Long-polling for message receive (POST /ilink/bot/getupdates)
+- Message send via POST /ilink/bot/sendmessage
+- Context token management per user for reply threading
+- QR login CLI: `node dist/cli.js login`
+- When ILINK_BOT_TOKEN is absent, falls back to simulated gateway + pino logging
+- 128 tests pass (23 files), typecheck clean, build succeeds
+- 8 new test files added

@@ -1,0 +1,21 @@
+# Ralph Progress
+
+Project: wechat_claw
+Branch: ralph/real-tool-runners
+Status: Completed
+
+## User Stories
+- [x] US-001 Implement real shell.exec runner with workspace containment
+- [x] US-002 Implement real fs.read runner with workspace boundary
+- [x] US-003 Implement real fs.write runner with workspace boundary
+- [x] US-004 Implement real web.fetch runner
+- [x] US-005 Wire real tool runners and sendReply into the entrypoint
+
+## Notes
+- Iteration completed 2026-05-12.
+- Replaced stubShellExec and stubWebSearch with real implementations.
+- Wired fsRead, fsWrite, webFetch, wechatReply into tool registry.
+- sendReply now logs via pino instead of being a no-op.
+- Added pino dependency for structured logging.
+- All 120 tests pass (21 test files), typecheck clean, build succeeds.
+- 16 new tests added across shell-real-runner, fs-real-runner, web-real-runner.

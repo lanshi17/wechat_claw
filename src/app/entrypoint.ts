@@ -1,5 +1,7 @@
 import { loadConfig } from "../shared/config.js";
 import { createWeChatGateway } from "../wechat/gateway.js";
+import { createIlinkClient } from "../wechat/ilink-client.js";
+import { createIlinkWeChatGateway } from "../wechat/ilink-gateway.js";
 import { createAgentRuntime } from "../agent/runtime.js";
 import { createToolRegistry } from "../tools/registry.js";
 import { createApplication } from "./main.js";
@@ -9,19 +11,12 @@ import { createSqliteDatabase } from "../store/db.js";
 import { ThreadRepository } from "../store/repositories/threads.js";
 import { ApprovalRepository } from "../store/repositories/approvals.js";
 import { createOpenAiProvider } from "../agent/provider/openai.js";
+import { createRealShellExec } from "../tools/shell/real-runner.js";
+import { createRealFsRead, createRealFsWrite } from "../tools/fs/real-runner.js";
+import { createRealWebFetch } from "../tools/web/real-runner.js";
+import { pino } from "pino";
 import type { MessageInput } from "../tasks/service.js";
-
-async function stubWebSearch() {
-  return { items: [] };
-}
-
-async function stubShellExec() {
-  return {
-    exitCode: 0,
-    stdout: "",
-    stderr: "",
-  };
-}
+import type { InboundWeChatMessage } from "../wechat/types.js";
 
 export function createDefaultEntrypoint(input: { env: Record<string, string | undefined> }) {
   const config = loadConfig(input.env);
@@ -33,11 +28,43 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
   const threadRepository = new ThreadRepository(db);
   const approvalRepository = new ApprovalRepository(db);
 
+  const logger = pino({ level: "info" });
+  const contextTokens = new Map<string, string>();
+
+  const ilinkClient = config.ilinkBotToken
+    ? createIlinkClient(config.ilinkBotToken)
+    : undefined;
+
+  async function sendReply(toUserId: string, text: string) {
+    const ctxToken = contextTokens.get(toUserId);
+    if (ilinkClient && ctxToken) {
+      try {
+        await ilinkClient.sendMessage({
+          to_user_id: toUserId,
+          context_token: ctxToken,
+          item_list: [{ type: 1, text_item: { text } }],
+        });
+        logger.info({ toUserId, text }, "wechat reply sent via ilink");
+      } catch (err) {
+        logger.error({ toUserId, text, err }, "ilink sendMessage failed");
+      }
+    } else {
+      logger.info({ toUserId, text }, "wechat reply logged (no ilink)");
+    }
+  }
+
   const provider = createOpenAiProvider(config.llm);
   const runtime = createAgentRuntime({ provider });
   const toolRegistry = createToolRegistry({
-    shellExec: stubShellExec,
-    webSearch: stubWebSearch,
+    shellExec: createRealShellExec(config.workspaceRoot),
+    fsRead: createRealFsRead(config.workspaceRoot),
+    fsWrite: createRealFsWrite(config.workspaceRoot),
+    webSearch: async () => ({ items: [] }),
+    webFetch: createRealWebFetch(),
+    wechatReply: async (input) => {
+      await sendReply(input.toUserId, input.text);
+      return { delivered: true };
+    },
   });
   const taskServiceImpl = createTaskService({
     threadRepository,
@@ -96,23 +123,32 @@ export function createDefaultEntrypoint(input: { env: Record<string, string | un
         taskServiceImpl.markRejected(approvalId);
       },
     },
-    sendReply: async () => {},
+    sendReply,
   });
 
-  const gateway = createWeChatGateway({
-    adminUserId: config.adminUserId,
-    onMessage: async (message) => {
-      currentMessage = {
-        fromUserId: message.fromUserId,
-        text: message.text,
-      };
-      await app.handleAdminMessage({
-        fromUserId: message.fromUserId,
-        text: message.text,
-        contextToken: message.contextToken,
+  const onMessage = async (message: InboundWeChatMessage) => {
+    contextTokens.set(message.fromUserId, message.contextToken);
+    currentMessage = {
+      fromUserId: message.fromUserId,
+      text: message.text,
+    };
+    await app.handleAdminMessage({
+      fromUserId: message.fromUserId,
+      text: message.text,
+      contextToken: message.contextToken,
+    });
+  };
+
+  const gateway = ilinkClient
+    ? createIlinkWeChatGateway({
+        adminUserId: config.adminUserId,
+        ilinkClient,
+        onMessage,
+      })
+    : createWeChatGateway({
+        adminUserId: config.adminUserId,
+        onMessage,
       });
-    },
-  });
 
   return { app, gateway, taskService: taskServiceImpl, setCurrentMessage: (msg: MessageInput) => { currentMessage = msg; } };
 }
